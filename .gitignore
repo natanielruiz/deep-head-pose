@@ -1,0 +1,4 @@
+*.pyc
+*.npy
+data/*
+output/*
