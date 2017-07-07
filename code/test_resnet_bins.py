@@ -46,6 +46,7 @@ if __name__ == '__main__':
 
     # ResNet50 with 3 outputs.
     model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 6, 3], 66)
+    # model = hopenet.Hopenet(torchvision.models.resnet.BasicBlock, [2, 2, 2, 2], 66)
 
     print 'Loading snapshot.'
     # Load snapshot
@@ -106,6 +107,8 @@ if __name__ == '__main__':
         yaw_error += abs(yaw_predicted - label_yaw[0]) * 3
         pitch_error += abs(pitch_predicted - label_pitch[0]) * 3
         roll_error += abs(roll_predicted - label_roll[0]) * 3
+
+        # print yaw_predicted * 3, label_yaw[0] * 3, abs(yaw_predicted - label_yaw[0]) * 3
 
         # for er in xrange(0,n_margins):
         #     yaw_correct[er] += (label_yaw[0] in range(yaw_predicted[0,0] - er, yaw_predicted[0,0] + er + 1))
