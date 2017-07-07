@@ -91,10 +91,10 @@ if __name__ == '__main__':
     if not os.path.exists('output/snapshots'):
         os.makedirs('output/snapshots')
 
-    # ResNet18 with 3 outputs.
-    model = hopenet.Hopenet(torchvision.models.resnet.BasicBlock, [2, 2, 2, 2], 66)
-    load_filtered_state_dict(model, model_zoo.load_url(model_urls['resnet18']))
-    
+    # ResNet50 with 3 outputs.
+    model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 6, 3], 66)
+    load_filtered_state_dict(model, model_zoo.load_url(model_urls['resnet50']))
+
     print 'Loading data.'
 
     transformations = transforms.Compose([transforms.Scale(224),transforms.RandomCrop(224),
@@ -109,8 +109,8 @@ if __name__ == '__main__':
 
     model.cuda(gpu)
     criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam([{'params': get_ignored_params(model), 'lr': .0},
-                                  {'params': get_non_ignored_params(model), 'lr': args.lr}],
+    optimizer = torch.optim.Adam([{'params': get_ignored_params(model), 'lr': args.lr},
+                                  {'params': get_non_ignored_params(model), 'lr': args.lr * 10}],
                                   lr = args.lr)
 
     print 'Ready to train network.'
@@ -137,11 +137,11 @@ if __name__ == '__main__':
                 print ('Epoch [%d/%d], Iter [%d/%d] Losses: Yaw %.4f, Pitch %.4f, Roll %.4f'
                        %(epoch+1, num_epochs, i+1, len(pose_dataset)//batch_size, loss_yaw.data[0], loss_pitch.data[0], loss_roll.data[0]))
 
-        # Save models at even numbered epochs.
+        # Save models at numbered epochs.
         if epoch % 1 == 0 and epoch < num_epochs - 1:
             print 'Taking snapshot...'
             torch.save(model.state_dict(),
-            'output/snapshots/resnet18_binned_epoch_' + str(epoch+1) + '.pkl')
+            'output/snapshots/resnet50_binned_epoch_' + str(epoch+1) + '.pkl')
 
     # Save the final Trained Model
-    torch.save(model.state_dict(), 'output/snapshots/resnet18_binned_epoch_' + str(epoch+1) + '.pkl')
+    torch.save(model.state_dict(), 'output/snapshots/resnet50_binned_epoch_' + str(epoch+1) + '.pkl')

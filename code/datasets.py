@@ -121,19 +121,17 @@ class AFLW2000_binned(Dataset):
         # We get the pose in radians
         pose = utils.get_ypr_from_mat(os.path.join(self.data_dir, self.y_train[index] + self.annot_ext))
         # And convert to degrees.
-        pitch, yaw, roll = pose * 180 / np.pi
+        pitch = pose[0] * 180 / np.pi
+        yaw = pose[1] * 180 / np.pi
+        roll = pose[2] * 180 / np.pi
         # Bin values
         bins = np.array(range(-99, 102, 3))
-        binned_pitch = torch.DoubleTensor(np.digitize(pitch, bins) - 1)
-        binned_yaw = torch.DoubleTensor(np.digitize(yaw, bins) - 1)
-        binned_roll = torch.DoubleTensor(np.digitize(roll, bins) - 1)
-
-        label = binned_yaw, binned_pitch, binned_roll
+        labels = torch.LongTensor(np.digitize([yaw, pitch, roll], bins) - 1)
 
         if self.transform is not None:
             img = self.transform(img)
 
-        return img, label, self.X_train[index]
+        return img, labels, self.X_train[index]
 
     def __len__(self):
         # 2,000
