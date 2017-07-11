@@ -31,6 +31,8 @@ def parse_args():
           default='', type=str)
     parser.add_argument('--batch_size', dest='batch_size', help='Batch size.',
           default=1, type=int)
+    parser.add_argument('--save_viz', dest='save_viz', help='Save images with pose cube.',
+          default=False, type=bool)
 
     args = parser.parse_args()
 
@@ -92,33 +94,49 @@ if __name__ == '__main__':
         label_roll = labels[:,2]
 
         yaw, pitch, roll = model(images)
-        # _, yaw_predicted = torch.max(yaw.data, 1)
-        # _, pitch_predicted = torch.max(pitch.data, 1)
-        # _, roll_predicted = torch.max(roll.data, 1)
+
+        # Binned predictions
+        _, yaw_bpred = torch.max(yaw.data, 1)
+        _, pitch_bpred = torch.max(pitch.data, 1)
+        _, roll_bpred = torch.max(roll.data, 1)
 
         yaw_predicted = F.softmax(yaw)
         pitch_predicted = F.softmax(pitch)
         roll_predicted = F.softmax(roll)
 
+        # Continuous predictions
         yaw_predicted = torch.sum(yaw_predicted.data[0] * idx_tensor)
         pitch_predicted = torch.sum(pitch_predicted.data[0] * idx_tensor)
         roll_predicted = torch.sum(roll_predicted.data[0] * idx_tensor)
 
+        # Mean absolute error
         yaw_error += abs(yaw_predicted - label_yaw[0]) * 3
         pitch_error += abs(pitch_predicted - label_pitch[0]) * 3
         roll_error += abs(roll_predicted - label_roll[0]) * 3
 
-        # print yaw_predicted * 3, label_yaw[0] * 3, abs(yaw_predicted - label_yaw[0]) * 3
+        # Binned Accuracy
+        # for er in xrange(n_margins):
+        #     yaw_bpred[er] += (label_yaw[0] in range(yaw_bpred[0,0] - er, yaw_bpred[0,0] + er + 1))
+        #     pitch_bpred[er] += (label_pitch[0] in range(pitch_bpred[0,0] - er, pitch_bpred[0,0] + er + 1))
+        #     roll_bpred[er] += (label_roll[0] in range(roll_bpred[0,0] - er, roll_bpred[0,0] + er + 1))
 
-        # for er in xrange(0,n_margins):
-        #     yaw_correct[er] += (label_yaw[0] in range(yaw_predicted[0,0] - er, yaw_predicted[0,0] + er + 1))
-        #     pitch_correct[er] += (label_pitch[0] in range(pitch_predicted[0,0] - er, pitch_predicted[0,0] + er + 1))
-        #     roll_correct[er] += (label_roll[0] in range(roll_predicted[0,0] - er, roll_predicted[0,0] + er + 1))
+        # print label_yaw[0], yaw_bpred[0,0]
 
-        # print label_yaw[0], yaw_predicted[0,0]
-    # 4 -> 15
+        # Save images with pose cube.
+        if args.save_viz:
+            name = name[0]
+            cv2_img = cv2.imread(os.path.join(args.data_dir, name + '.jpg'))
+            #cv2_img = cv2.cvtColor(cv2_img, cv2.COLOR_RGB2BGR)
+            #print name
+            #print label_yaw[0] * 3 - 99, label_pitch[0] * 3 - 99, label_roll[0] * 3 - 99
+            #print yaw_predicted * 3 - 99, pitch_predicted * 3 - 99, roll_predicted * 3 - 99
+            utils.plot_pose_cube(cv2_img, yaw_predicted * 3 - 99, pitch_predicted * 3 - 99, roll_predicted * 3 - 99)
+            cv2.imwrite(os.path.join('output/images', name + '.jpg'), cv2_img)
+
     print('Test error in degrees of the model on the ' + str(total) +
     ' test images. Yaw: %.4f, Pitch: %.4f, Roll: %.4f' % (yaw_error / total,
     pitch_error / total, roll_error / total))
+
+    # Binned accuracy
     # for idx in xrange(len(yaw_correct)):
     #     print yaw_correct[idx] / total, pitch_correct[idx] / total, roll_correct[idx] / total

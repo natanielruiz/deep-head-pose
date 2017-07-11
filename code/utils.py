@@ -7,25 +7,23 @@ import cv2
 import math
 from math import cos, sin
 
-def plot_pose_cube(img, pose_params, size=150.):
+def plot_pose_cube(img, yaw, pitch, roll, tdx=None, tdy=None, size=150.):
+    # Input is a cv2 image
     # pose_params: (pitch, yaw, roll, tdx, tdy)
     # Where (tdx, tdy) is the translation of the face.
     # For pose we have [pitch yaw roll tdx tdy tdz scale_factor]
 
-    pitch, yaw, roll, tdx, tdy = pose_params
+    p = pitch * np.pi / 180
+    y = -(yaw * np.pi / 180)
+    r = roll * np.pi / 180
 
-    p = pitch
-    y = -yaw
-    r = roll
-
-    # TODO: probably useless
-    # Translation of box depends on head pointing to right or left.
-    if y < 0:
+    if tdx != None and tdy != None:
         face_x = tdx - 0.50 * size
         face_y = tdy - 0.50 * size
     else:
-        face_x = tdx - 0.50 * size
-        face_y = tdy - 0.50 * size
+        height, width = img.shape[:2]
+        face_x = width / 2 - 0.15 - size
+        face_y = height / 2 - 0.15 - size
 
     x1 = size * (cos(y) * cos(r)) + face_x
     y1 = size * (cos(p) * sin(r) + cos(r) * sin(p) * sin(y)) + face_y
@@ -35,15 +33,15 @@ def plot_pose_cube(img, pose_params, size=150.):
     y3 = size * (-cos(y) * sin(p)) + face_y
 
     # Draw base in red
-    cv2.line(img, (int(face_x), int(face_y)), (int(x1),int(y1)),(255,0,0),3)
-    cv2.line(img, (int(face_x), int(face_y)), (int(x2),int(y2)),(255,0,0),3)
-    cv2.line(img, (int(x2), int(y2)), (int(x2+x1-face_x),int(y2+y1-face_y)),(255,0,0),3)
-    cv2.line(img, (int(x1), int(y1)), (int(x1+x2-face_x),int(y1+y2-face_y)),(255,0,0),3)
+    cv2.line(img, (int(face_x), int(face_y)), (int(x1),int(y1)),(0,0,255),3)
+    cv2.line(img, (int(face_x), int(face_y)), (int(x2),int(y2)),(0,0,255),3)
+    cv2.line(img, (int(x2), int(y2)), (int(x2+x1-face_x),int(y2+y1-face_y)),(0,0,255),3)
+    cv2.line(img, (int(x1), int(y1)), (int(x1+x2-face_x),int(y1+y2-face_y)),(0,0,255),3)
     # Draw pillars in blue
-    cv2.line(img, (int(face_x), int(face_y)), (int(x3),int(y3)),(0,0,255),2)
-    cv2.line(img, (int(x1), int(y1)), (int(x1+x3-face_x),int(y1+y3-face_y)),(0,0,255),2)
-    cv2.line(img, (int(x2), int(y2)), (int(x2+x3-face_x),int(y2+y3-face_y)),(0,0,255),2)
-    cv2.line(img, (int(x2+x1-face_x),int(y2+y1-face_y)), (int(x3+x1+x2-2*face_x),int(y3+y2+y1-2*face_y)),(0,0,255),2)
+    cv2.line(img, (int(face_x), int(face_y)), (int(x3),int(y3)),(255,0,0),2)
+    cv2.line(img, (int(x1), int(y1)), (int(x1+x3-face_x),int(y1+y3-face_y)),(255,0,0),2)
+    cv2.line(img, (int(x2), int(y2)), (int(x2+x3-face_x),int(y2+y3-face_y)),(255,0,0),2)
+    cv2.line(img, (int(x2+x1-face_x),int(y2+y1-face_y)), (int(x3+x1+x2-2*face_x),int(y3+y2+y1-2*face_y)),(255,0,0),2)
     # Draw top in green
     cv2.line(img, (int(x3+x1-face_x),int(y3+y1-face_y)), (int(x3+x1+x2-2*face_x),int(y3+y2+y1-2*face_y)),(0,255,0),2)
     cv2.line(img, (int(x2+x3-face_x),int(y2+y3-face_y)), (int(x3+x1+x2-2*face_x),int(y3+y2+y1-2*face_y)),(0,255,0),2)
