@@ -22,8 +22,8 @@ def plot_pose_cube(img, yaw, pitch, roll, tdx=None, tdy=None, size=150.):
         face_y = tdy - 0.50 * size
     else:
         height, width = img.shape[:2]
-        face_x = width / 2 - 0.15 - size
-        face_y = height / 2 - 0.15 - size
+        face_x = width / 2 - 0.5 * size
+        face_y = height / 2 - 0.5 * size
 
     x1 = size * (cos(y) * cos(r)) + face_x
     y1 = size * (cos(p) * sin(r) + cos(r) * sin(p) * sin(y)) + face_y

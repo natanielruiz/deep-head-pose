@@ -109,7 +109,13 @@ if __name__ == '__main__':
 
     model.cuda(gpu)
     criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam([{'params': get_ignored_params(model), 'lr': args.lr},
+    # optimizer = torch.optim.Adam([{'params': get_ignored_params(model), 'lr': args.lr},
+    #                               {'params': get_non_ignored_params(model), 'lr': args.lr * 10}],
+    #                               lr = args.lr)
+    # optimizer = torch.optim.SGD([{'params': get_ignored_params(model), 'lr': args.lr},
+    #                               {'params': get_non_ignored_params(model), 'lr': args.lr}],
+    #                               lr = args.lr, momentum=0.9)
+    optimizer = torch.optim.RMSprop([{'params': get_ignored_params(model), 'lr': args.lr},
                                   {'params': get_non_ignored_params(model), 'lr': args.lr * 10}],
                                   lr = args.lr)
 
@@ -141,7 +147,7 @@ if __name__ == '__main__':
         if epoch % 1 == 0 and epoch < num_epochs - 1:
             print 'Taking snapshot...'
             torch.save(model.state_dict(),
-            'output/snapshots/resnet50_binned_epoch_' + str(epoch+1) + '.pkl')
+            'output/snapshots/resnet50_binned_RMSprop_epoch_' + str(epoch+1) + '.pkl')
 
     # Save the final Trained Model
-    torch.save(model.state_dict(), 'output/snapshots/resnet50_binned_epoch_' + str(epoch+1) + '.pkl')
+    torch.save(model.state_dict(), 'output/snapshots/resnet50_binned_RMSprop_epoch_' + str(epoch+1) + '.pkl')
