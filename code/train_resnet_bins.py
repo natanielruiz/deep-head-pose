@@ -91,9 +91,13 @@ if __name__ == '__main__':
     if not os.path.exists('output/snapshots'):
         os.makedirs('output/snapshots')
 
-    # ResNet50 with 3 outputs.
-    model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 6, 3], 66)
-    load_filtered_state_dict(model, model_zoo.load_url(model_urls['resnet50']))
+    # ResNet101 with 3 outputs
+    # model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 23, 3], 66)
+    # ResNet50
+    # model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 6, 3], 66)
+    # ResNet18
+    model = hopenet.Hopenet(torchvision.models.resnet.BasicBlock, [2, 2, 2, 2], 66)
+    load_filtered_state_dict(model, model_zoo.load_url(model_urls['resnet18']))
 
     print 'Loading data.'
 
@@ -109,15 +113,15 @@ if __name__ == '__main__':
 
     model.cuda(gpu)
     criterion = nn.CrossEntropyLoss()
-    # optimizer = torch.optim.Adam([{'params': get_ignored_params(model), 'lr': args.lr},
-    #                               {'params': get_non_ignored_params(model), 'lr': args.lr * 10}],
-    #                               lr = args.lr)
+    optimizer = torch.optim.Adam([{'params': get_ignored_params(model), 'lr': args.lr},
+                                  {'params': get_non_ignored_params(model), 'lr': args.lr * 10}],
+                                  lr = args.lr)
     # optimizer = torch.optim.SGD([{'params': get_ignored_params(model), 'lr': args.lr},
     #                               {'params': get_non_ignored_params(model), 'lr': args.lr}],
     #                               lr = args.lr, momentum=0.9)
-    optimizer = torch.optim.RMSprop([{'params': get_ignored_params(model), 'lr': args.lr},
-                                  {'params': get_non_ignored_params(model), 'lr': args.lr * 10}],
-                                  lr = args.lr)
+    # optimizer = torch.optim.RMSprop([{'params': get_ignored_params(model), 'lr': args.lr},
+    #                               {'params': get_non_ignored_params(model), 'lr': args.lr * 10}],
+    #                               lr = args.lr)
 
     print 'Ready to train network.'
 
@@ -147,7 +151,7 @@ if __name__ == '__main__':
         if epoch % 1 == 0 and epoch < num_epochs - 1:
             print 'Taking snapshot...'
             torch.save(model.state_dict(),
-            'output/snapshots/resnet50_binned_RMSprop_epoch_' + str(epoch+1) + '.pkl')
+            'output/snapshots/resnet18_cr_epoch_'+ str(epoch+1) + '.pkl')
 
     # Save the final Trained Model
-    torch.save(model.state_dict(), 'output/snapshots/resnet50_binned_RMSprop_epoch_' + str(epoch+1) + '.pkl')
+    torch.save(model.state_dict(), 'output/snapshots/resnet18_cr_epoch_' + str(epoch+1) + '.pkl')

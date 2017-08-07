@@ -70,5 +70,11 @@ def get_ypr_from_mat(mat_path):
     pose_params = pre_pose_params[:3]
     return pose_params
 
+def get_pt2d_from_mat(mat_path):
+    # Get 2D landmarks
+    mat = sio.loadmat(mat_path)
+    pt2d = mat['pt2d']
+    return pt2d
+
 def mse_loss(input, target):
     return torch.sum(torch.abs(input.data - target.data) ** 2)

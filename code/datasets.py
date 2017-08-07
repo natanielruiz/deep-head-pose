@@ -81,9 +81,24 @@ class Pose_300W_LP_binned(Dataset):
     def __getitem__(self, index):
         img = Image.open(os.path.join(self.data_dir, self.X_train[index] + self.img_ext))
         img = img.convert('RGB')
+        mat_path = os.path.join(self.data_dir, self.y_train[index] + self.annot_ext)
+
+        # Crop the face
+        pt2d = utils.get_pt2d_from_mat(mat_path)
+        x_min = min(pt2d[0,:])
+        y_min = min(pt2d[1,:])
+        x_max = max(pt2d[0,:])
+        y_max = max(pt2d[1,:])
+
+        k = 0.15
+        x_min -= k * abs(x_max - x_min)
+        y_min -= 4 * k * abs(y_max - y_min)
+        x_max += k * abs(x_max - x_min)
+        y_max += 0.4 * k * abs(y_max - y_min)
+        img = img.crop((int(x_min), int(y_min), int(x_max), int(y_max)))
 
         # We get the pose in radians
-        pose = utils.get_ypr_from_mat(os.path.join(self.data_dir, self.y_train[index] + self.annot_ext))
+        pose = utils.get_ypr_from_mat(mat_path)
         # And convert to degrees.
         pitch = pose[0] * 180 / np.pi
         yaw = pose[1] * 180 / np.pi
@@ -117,9 +132,24 @@ class AFLW2000_binned(Dataset):
     def __getitem__(self, index):
         img = Image.open(os.path.join(self.data_dir, self.X_train[index] + self.img_ext))
         img = img.convert('RGB')
+        mat_path = os.path.join(self.data_dir, self.y_train[index] + self.annot_ext)
+
+        # Crop the face
+        pt2d = utils.get_pt2d_from_mat(mat_path)
+        x_min = min(pt2d[0,:])
+        y_min = min(pt2d[1,:])
+        x_max = max(pt2d[0,:])
+        y_max = max(pt2d[1,:])
+
+        k = 0.15
+        x_min -= k * abs(x_max - x_min)
+        y_min -= 4 * k * abs(y_max - y_min)
+        x_max += k * abs(x_max - x_min)
+        y_max += 0.4 * k * abs(y_max - y_min)
+        img = img.crop((int(x_min), int(y_min), int(x_max), int(y_max)))
 
         # We get the pose in radians
-        pose = utils.get_ypr_from_mat(os.path.join(self.data_dir, self.y_train[index] + self.annot_ext))
+        pose = utils.get_ypr_from_mat(mat_path)
         # And convert to degrees.
         pitch = pose[0] * 180 / np.pi
         yaw = pose[1] * 180 / np.pi

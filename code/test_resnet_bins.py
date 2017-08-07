@@ -46,8 +46,11 @@ if __name__ == '__main__':
     gpu = args.gpu_id
     snapshot_path = os.path.join('output/snapshots', args.snapshot + '.pkl')
 
-    # ResNet50 with 3 outputs.
+    # ResNet101 with 3 outputs.
+    # model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 23, 3], 66)
+    # ResNet50
     # model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 6, 3], 66)
+    # ResNet18
     model = hopenet.Hopenet(torchvision.models.resnet.BasicBlock, [2, 2, 2, 2], 66)
 
     print 'Loading snapshot.'

@@ -45,10 +45,12 @@ if __name__ == '__main__':
     if not os.path.exists(args.video_path):
         sys.exit('Video does not exist')
 
-    # ResNet50 with 3 outputs.
-    model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 6, 3], 66)
+    # ResNet101 with 3 outputs.
+    # model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 23, 3], 66)
+    # ResNet50
+    # model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 6, 3], 66)
     # ResNet18
-    # model = hopenet.Hopenet(torchvision.models.resnet.BasicBlock, [2, 2, 2, 2], 66)
+    model = hopenet.Hopenet(torchvision.models.resnet.BasicBlock, [2, 2, 2, 2], 66)
 
     print 'Loading snapshot.'
     # Load snapshot
@@ -79,6 +81,8 @@ if __name__ == '__main__':
     fourcc = cv2.VideoWriter_fourcc(*'MJPG')
     out = cv2.VideoWriter('output/video/output-%s.avi' % args.output_string, fourcc, 30.0, (width, height))
 
+    txt_out = open('output/video/output-%s.txt' % args.output_string, 'w')
+
     bbox_file = open(args.bboxes, 'r')
     frame_num = 1
 
@@ -95,6 +99,7 @@ if __name__ == '__main__':
             out.release()
             video.release()
             bbox_file.close()
+            txt_out.close()
             sys.exit(0)
 
         # Save all frames as they are if they don't have bbox annotation.
@@ -104,6 +109,7 @@ if __name__ == '__main__':
                 out.release()
                 video.release()
                 bbox_file.close()
+                txt_out.close()
                 sys.exit(0)
             out.write(frame)
             frame_num += 1
@@ -113,6 +119,7 @@ if __name__ == '__main__':
             out.release()
             video.release()
             bbox_file.close()
+            txt_out.close()
             sys.exit(0)
 
         x_min, y_min, x_max, y_max = int(line[1]), int(line[2]), int(line[3]), int(line[4])
@@ -136,6 +143,7 @@ if __name__ == '__main__':
         roll_predicted = torch.sum(roll_predicted.data[0] * idx_tensor) * 3 - 99
 
         # Print new frame with cube and TODO: axis
+        txt_out.write(str(frame_num) + ' %f %f %f\n' % (yaw_predicted, pitch_predicted, roll_predicted))
         utils.plot_pose_cube(frame, yaw_predicted, pitch_predicted, roll_predicted, (x_min + x_max) / 2, (y_min + y_max) / 2, size = 200)
         out.write(frame)
 
@@ -147,6 +155,7 @@ if __name__ == '__main__':
             out.release()
             video.release()
             bbox_file.close()
+            txt_out.close()
             sys.exit(0)
         out.write(frame)
         frame_num += 1
