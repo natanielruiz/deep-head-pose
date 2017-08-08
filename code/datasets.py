@@ -7,6 +7,10 @@ from PIL import Image
 
 import utils
 
+def stack_grayscale_tensor(tensor):
+    tensor = torch.cat([tensor, tensor, tensor], 0)
+    return tensor
+
 class Pose_300W_LP(Dataset):
     def __init__(self, data_dir, filename_path, transform, img_ext='.jpg', annot_ext='.mat'):
         self.data_dir = data_dir
@@ -66,7 +70,7 @@ class AFLW2000(Dataset):
         return self.length
 
 class Pose_300W_LP_binned(Dataset):
-    def __init__(self, data_dir, filename_path, transform, img_ext='.jpg', annot_ext='.mat'):
+    def __init__(self, data_dir, filename_path, transform, img_ext='.jpg', annot_ext='.mat', image_mode='RGB'):
         self.data_dir = data_dir
         self.transform = transform
         self.img_ext = img_ext
@@ -76,11 +80,12 @@ class Pose_300W_LP_binned(Dataset):
 
         self.X_train = filename_list
         self.y_train = filename_list
+        self.image_mode = image_mode
         self.length = len(filename_list)
 
     def __getitem__(self, index):
         img = Image.open(os.path.join(self.data_dir, self.X_train[index] + self.img_ext))
-        img = img.convert('RGB')
+        img = img.convert(self.image_mode)
         mat_path = os.path.join(self.data_dir, self.y_train[index] + self.annot_ext)
 
         # Crop the face
@@ -117,7 +122,7 @@ class Pose_300W_LP_binned(Dataset):
         return self.length
 
 class AFLW2000_binned(Dataset):
-    def __init__(self, data_dir, filename_path, transform, img_ext='.jpg', annot_ext='.mat'):
+    def __init__(self, data_dir, filename_path, transform, img_ext='.jpg', annot_ext='.mat', image_mode='RGB'):
         self.data_dir = data_dir
         self.transform = transform
         self.img_ext = img_ext
@@ -127,11 +132,12 @@ class AFLW2000_binned(Dataset):
 
         self.X_train = filename_list
         self.y_train = filename_list
+        self.image_mode = image_mode
         self.length = len(filename_list)
 
     def __getitem__(self, index):
         img = Image.open(os.path.join(self.data_dir, self.X_train[index] + self.img_ext))
-        img = img.convert('RGB')
+        img = img.convert(self.image_mode)
         mat_path = os.path.join(self.data_dir, self.y_train[index] + self.annot_ext)
 
         # Crop the face
