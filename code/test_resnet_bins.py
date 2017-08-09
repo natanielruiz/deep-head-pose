@@ -42,16 +42,15 @@ if __name__ == '__main__':
     args = parse_args()
 
     cudnn.enabled = True
-    batch_size = 1
     gpu = args.gpu_id
     snapshot_path = os.path.join('output/snapshots', args.snapshot + '.pkl')
 
     # ResNet101 with 3 outputs.
     # model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 23, 3], 66)
     # ResNet50
-    # model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 6, 3], 66)
+    model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 6, 3], 66)
     # ResNet18
-    model = hopenet.Hopenet(torchvision.models.resnet.BasicBlock, [2, 2, 2, 2], 66)
+    # model = hopenet.Hopenet(torchvision.models.resnet.BasicBlock, [2, 2, 2, 2], 66)
 
     print 'Loading snapshot.'
     # Load snapshot
@@ -66,7 +65,7 @@ if __name__ == '__main__':
     pose_dataset = datasets.AFLW2000_binned(args.data_dir, args.filename_list,
                                 transformations)
     test_loader = torch.utils.data.DataLoader(dataset=pose_dataset,
-                                               batch_size=batch_size,
+                                               batch_size=args.batch_size,
                                                num_workers=2)
 
     model.cuda(gpu)
@@ -88,12 +87,14 @@ if __name__ == '__main__':
     pitch_error = .0
     roll_error = .0
 
+    l1loss = torch.nn.L1Loss(size_average=False)
+
     for i, (images, labels, name) in enumerate(test_loader):
         images = Variable(images).cuda(gpu)
         total += labels.size(0)
-        label_yaw = labels[:,0]
-        label_pitch = labels[:,1]
-        label_roll = labels[:,2]
+        label_yaw = labels[:,0].float()
+        label_pitch = labels[:,1].float()
+        label_roll = labels[:,2].float()
 
         yaw, pitch, roll = model(images)
 
@@ -107,14 +108,18 @@ if __name__ == '__main__':
         roll_predicted = F.softmax(roll)
 
         # Continuous predictions
-        yaw_predicted = torch.sum(yaw_predicted.data[0] * idx_tensor)
-        pitch_predicted = torch.sum(pitch_predicted.data[0] * idx_tensor)
-        roll_predicted = torch.sum(roll_predicted.data[0] * idx_tensor)
+        yaw_predicted = torch.sum(yaw_predicted.data * idx_tensor, 1)
+        pitch_predicted = torch.sum(pitch_predicted.data * idx_tensor, 1)
+        roll_predicted = torch.sum(roll_predicted.data * idx_tensor, 1)
+
+        yaw_predicted = yaw_predicted.cpu()
+        pitch_predicted = pitch_predicted.cpu()
+        roll_predicted = roll_predicted.cpu()
 
         # Mean absolute error
-        yaw_error += abs(yaw_predicted - label_yaw[0]) * 3
-        pitch_error += abs(pitch_predicted - label_pitch[0]) * 3
-        roll_error += abs(roll_predicted - label_roll[0]) * 3
+        yaw_error += torch.sum(torch.abs(yaw_predicted - label_yaw) * 3)
+        pitch_error += torch.sum(torch.abs(pitch_predicted - label_pitch) * 3)
+        roll_error += torch.sum(torch.abs(roll_predicted - label_roll) * 3)
 
         # Binned Accuracy
         # for er in xrange(n_margins):
@@ -125,13 +130,14 @@ if __name__ == '__main__':
         # print label_yaw[0], yaw_bpred[0,0]
 
         # Save images with pose cube.
+        # TODO: fix for larger batch size
         if args.save_viz:
             name = name[0]
             cv2_img = cv2.imread(os.path.join(args.data_dir, name + '.jpg'))
             #print os.path.join('output/images', name + '.jpg')
             #print label_yaw[0] * 3 - 99, label_pitch[0] * 3 - 99, label_roll[0] * 3 - 99
             #print yaw_predicted * 3 - 99, pitch_predicted * 3 - 99, roll_predicted * 3 - 99
-            utils.plot_pose_cube(cv2_img, yaw_predicted * 3 - 99, pitch_predicted * 3 - 99, roll_predicted * 3 - 99)
+            utils.plot_pose_cube(cv2_img, yaw_predicted[0] * 3 - 99, pitch_predicted[0] * 3 - 99, roll_predicted[0] * 3 - 99)
             cv2.imwrite(os.path.join('output/images', name + '.jpg'), cv2_img)
 
     print('Test error in degrees of the model on the ' + str(total) +
