@@ -87,6 +87,7 @@ class Pose_300W_LP_binned(Dataset):
         img = Image.open(os.path.join(self.data_dir, self.X_train[index] + self.img_ext))
         img = img.convert(self.image_mode)
         mat_path = os.path.join(self.data_dir, self.y_train[index] + self.annot_ext)
+        shape_path = os.path.join(self.data_dir, self.y_train[index] + '_shape.npy')
 
         # Crop the face
         pt2d = utils.get_pt2d_from_mat(mat_path)
@@ -110,7 +111,12 @@ class Pose_300W_LP_binned(Dataset):
         roll = pose[2] * 180 / np.pi
         # Bin values
         bins = np.array(range(-99, 102, 3))
-        labels = torch.LongTensor(np.digitize([yaw, pitch, roll], bins) - 1)
+        binned_pose = np.digitize([yaw, pitch, roll], bins) - 1
+
+        # Get shape
+        shape = np.load(shape_path)
+
+        labels = torch.LongTensor(np.concatenate((binned_pose, shape), axis = 0))
 
         if self.transform is not None:
             img = self.transform(img)
