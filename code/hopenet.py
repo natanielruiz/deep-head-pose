@@ -106,7 +106,7 @@ class Hopenet_shape(nn.Module):
     # This is just Hopenet with 3 output layers for yaw, pitch and roll.
     def __init__(self, block, layers, num_bins, shape_bins):
         self.inplanes = 64
-        super(Hopenet, self).__init__()
+        super(Hopenet_shape, self).__init__()
         self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
                                bias=False)
         self.bn1 = nn.BatchNorm2d(64)
@@ -120,7 +120,16 @@ class Hopenet_shape(nn.Module):
         self.fc_yaw = nn.Linear(512 * block.expansion, num_bins)
         self.fc_pitch = nn.Linear(512 * block.expansion, num_bins)
         self.fc_roll = nn.Linear(512 * block.expansion, num_bins)
+        self.fc_shape_0 = nn.Linear(512 * block.expansion, shape_bins)
         self.fc_shape_1 = nn.Linear(512 * block.expansion, shape_bins)
+        self.fc_shape_2 = nn.Linear(512 * block.expansion, shape_bins)
+        self.fc_shape_3 = nn.Linear(512 * block.expansion, shape_bins)
+        self.fc_shape_4 = nn.Linear(512 * block.expansion, shape_bins)
+        self.fc_shape_5 = nn.Linear(512 * block.expansion, shape_bins)
+        self.fc_shape_6 = nn.Linear(512 * block.expansion, shape_bins)
+        self.fc_shape_7 = nn.Linear(512 * block.expansion, shape_bins)
+        self.fc_shape_8 = nn.Linear(512 * block.expansion, shape_bins)
+        self.fc_shape_9 = nn.Linear(512 * block.expansion, shape_bins)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -163,6 +172,17 @@ class Hopenet_shape(nn.Module):
         yaw = self.fc_yaw(x)
         pitch = self.fc_pitch(x)
         roll = self.fc_roll(x)
-        shape_1 = self.fc_shape_1(x)
 
-        return yaw, pitch, roll, shape_1
+        shape = []
+        shape.append(self.fc_shape_0(x))
+        shape.append(self.fc_shape_1(x))
+        shape.append(self.fc_shape_2(x))
+        shape.append(self.fc_shape_3(x))
+        shape.append(self.fc_shape_4(x))
+        shape.append(self.fc_shape_5(x))
+        shape.append(self.fc_shape_6(x))
+        shape.append(self.fc_shape_7(x))
+        shape.append(self.fc_shape_8(x))
+        shape.append(self.fc_shape_9(x))
+
+        return yaw, pitch, roll, shape

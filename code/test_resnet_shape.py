@@ -48,7 +48,7 @@ if __name__ == '__main__':
     # ResNet101 with 3 outputs.
     # model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 23, 3], 66)
     # ResNet50
-    model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 6, 3], 66)
+    model = hopenet.Hopenet_shape(torchvision.models.resnet.Bottleneck, [3, 4, 6, 3], 66, 60)
     # ResNet18
     # model = hopenet.Hopenet(torchvision.models.resnet.BasicBlock, [2, 2, 2, 2], 66)
 
@@ -96,7 +96,7 @@ if __name__ == '__main__':
         label_pitch = labels[:,1].float()
         label_roll = labels[:,2].float()
 
-        yaw, pitch, roll = model(images)
+        yaw, pitch, roll, shape = model(images)
 
         # Binned predictions
         _, yaw_bpred = torch.max(yaw.data, 1)

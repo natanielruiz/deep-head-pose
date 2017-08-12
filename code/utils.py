@@ -7,6 +7,11 @@ import cv2
 import math
 from math import cos, sin
 
+def softmax_temperature(tensor, temperature):
+    result = torch.exp(tensor / temperature)
+    result = torch.div(result, torch.sum(result, 1).unsqueeze(1).expand_as(result))
+    return result
+
 def get_pose_params_from_mat(mat_path):
     # This functions gets the pose parameters from the .mat
     # Annotations that come with the 300W_LP dataset.

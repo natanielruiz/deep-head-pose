@@ -66,7 +66,17 @@ def get_non_ignored_params(model):
     b.append(model.fc_yaw)
     b.append(model.fc_pitch)
     b.append(model.fc_roll)
+    b.append(model.fc_shape_0)
     b.append(model.fc_shape_1)
+    b.append(model.fc_shape_2)
+    b.append(model.fc_shape_3)
+    b.append(model.fc_shape_4)
+    b.append(model.fc_shape_5)
+    b.append(model.fc_shape_6)
+    b.append(model.fc_shape_7)
+    b.append(model.fc_shape_8)
+    b.append(model.fc_shape_9)
+
     for i in range(len(b)):
         for j in b[i].modules():
             for k in j.parameters():
@@ -96,7 +106,7 @@ if __name__ == '__main__':
     # ResNet101 with 3 outputs
     # model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 23, 3], 66)
     # ResNet50
-    model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 6, 3], 66)
+    model = hopenet.Hopenet_shape(torchvision.models.resnet.Bottleneck, [3, 4, 6, 3], 66, 60)
     # ResNet18
     # model = hopenet.Hopenet(torchvision.models.resnet.BasicBlock, [2, 2, 2, 2], 66)
     load_filtered_state_dict(model, model_zoo.load_url(model_urls['resnet50']))
@@ -114,8 +124,8 @@ if __name__ == '__main__':
                                                num_workers=2)
 
     model.cuda(gpu)
-    criterion = nn.CrossEntropyLoss()
-    reg_criterion = nn.MSELoss()
+    criterion = nn.CrossEntropyLoss().cuda(gpu)
+    reg_criterion = nn.MSELoss().cuda(gpu)
     # Regression loss coefficient
     alpha = 0.1
     lsm = nn.Softmax()
@@ -124,21 +134,23 @@ if __name__ == '__main__':
     idx_tensor = torch.FloatTensor(idx_tensor).cuda(gpu)
 
     optimizer = torch.optim.Adam([{'params': get_ignored_params(model), 'lr': args.lr},
-                                  {'params': get_non_ignored_params(model), 'lr': args.lr * 10}],
+                                  {'params': get_non_ignored_params(model), 'lr': args.lr}],
                                   lr = args.lr)
 
     print 'Ready to train network.'
 
     for epoch in range(num_epochs):
         for i, (images, labels, name) in enumerate(train_loader):
-            images = Variable(images).cuda(gpu)
-            label_yaw = Variable(labels[:,0]).cuda(gpu)
-            label_pitch = Variable(labels[:,1]).cuda(gpu)
-            label_roll = Variable(labels[:,2]).cuda(gpu)
-            label_shape_1 = Variable(labels[:,3]).cuda(gpu)
+            images = Variable(images.cuda(gpu))
+            label_yaw = Variable(labels[:,0].cuda(gpu))
+            label_pitch = Variable(labels[:,1].cuda(gpu))
+            label_roll = Variable(labels[:,2].cuda(gpu))
+            label_shape = Variable(labels[:,3:].cuda(gpu))
 
             optimizer.zero_grad()
-            yaw, pitch, roll, shape_1 = model(images)
+            model.zero_grad()
+
+            yaw, pitch, roll, shape = model(images)
 
             # Cross entropy loss
             loss_yaw = criterion(yaw, label_yaw)
@@ -158,17 +170,18 @@ if __name__ == '__main__':
             loss_reg_pitch = reg_criterion(pitch_predicted, label_pitch.float())
             loss_reg_roll = reg_criterion(roll_predicted, label_roll.float())
 
-            # Shape space loss
-            loss_shape_1 = criterion(shape_1, label_shape_1)
-
             # Total loss
             loss_yaw += alpha * loss_reg_yaw
             loss_pitch += alpha * loss_reg_pitch
             loss_roll += alpha * loss_reg_roll
 
-            loss_seq = [loss_yaw, loss_pitch, loss_roll, loss_shape_1]
+            loss_seq = [loss_yaw, loss_pitch, loss_roll]
+
+            # Shape space loss
+            for idx in xrange(len(shape)):
+                loss_seq.append(criterion(shape[idx], label_shape[:,idx]))
+
             grad_seq = [torch.Tensor(1).cuda(gpu) for _ in range(len(loss_seq))]
-            model.zero_grad()
             torch.autograd.backward(loss_seq, grad_seq)
             optimizer.step()
 
@@ -176,17 +189,17 @@ if __name__ == '__main__':
             #        %(epoch+1, num_epochs, i+1, len(pose_dataset)//batch_size, loss_yaw.data[0], loss_pitch.data[0], loss_roll.data[0]))
 
             if (i+1) % 100 == 0:
-                print ('Epoch [%d/%d], Iter [%d/%d] Losses: Yaw %.4f, Pitch %.4f, Roll %.4f'
-                       %(epoch+1, num_epochs, i+1, len(pose_dataset)//batch_size, loss_yaw.data[0], loss_pitch.data[0], loss_roll.data[0]))
+                print ('Epoch [%d/%d], Iter [%d/%d] Losses: Yaw %.4f, Pitch %.4f, Roll %.4f, Shape %.4f'
+                       %(epoch+1, num_epochs, i+1, len(pose_dataset)//batch_size, loss_yaw.data[0], loss_pitch.data[0], loss_roll.data[0], loss_seq[3].data[0]))
                 if epoch == 0:
                     torch.save(model.state_dict(),
-                    'output/snapshots/resnet50_iter_'+ str(i+1) + '.pkl')
+                    'output/snapshots/resnet50_shape_iter_'+ str(i+1) + '.pkl')
 
         # Save models at numbered epochs.
         if epoch % 1 == 0 and epoch < num_epochs - 1:
             print 'Taking snapshot...'
             torch.save(model.state_dict(),
-            'output/snapshots/resnet50_epoch_'+ str(epoch+1) + '.pkl')
+            'output/snapshots/resnet50_shape_epoch_'+ str(epoch+1) + '.pkl')
 
     # Save the final Trained Model
-    torch.save(model.state_dict(), 'output/snapshots/resnet50_epoch_' + str(epoch+1) + '.pkl')
+    torch.save(model.state_dict(), 'output/snapshots/resnet50_shape_epoch_' + str(epoch+1) + '.pkl')
