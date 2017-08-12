@@ -62,7 +62,7 @@ if __name__ == '__main__':
     transformations = transforms.Compose([transforms.Scale(224),
     transforms.RandomCrop(224), transforms.ToTensor()])
 
-    pose_dataset = datasets.AFLW2000_binned(args.data_dir, args.filename_list,
+    pose_dataset = datasets.AFLW2000(args.data_dir, args.filename_list,
                                 transformations)
     test_loader = torch.utils.data.DataLoader(dataset=pose_dataset,
                                                batch_size=args.batch_size,

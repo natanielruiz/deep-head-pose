@@ -11,65 +11,7 @@ def stack_grayscale_tensor(tensor):
     tensor = torch.cat([tensor, tensor, tensor], 0)
     return tensor
 
-class Pose_300W_LP(Dataset):
-    def __init__(self, data_dir, filename_path, transform, img_ext='.jpg', annot_ext='.mat'):
-        self.data_dir = data_dir
-        self.transform = transform
-        self.img_ext = img_ext
-        self.annot_ext = annot_ext
-
-        filename_list = get_list_from_filenames(filename_path)
-
-        self.X_train = filename_list
-        self.y_train = filename_list
-        self.length = len(filename_list)
-
-    def __getitem__(self, index):
-        img = Image.open(os.path.join(self.data_dir, self.X_train[index] + self.img_ext))
-        img = img.convert('RGB')
-
-        pose = utils.get_ypr_from_mat(os.path.join(self.data_dir, self.y_train[index] + self.annot_ext))
-        label = torch.FloatTensor(pose)
-
-        if self.transform is not None:
-            img = self.transform(img)
-
-        return img, label, self.X_train[index]
-
-    def __len__(self):
-        # 122,450
-        return self.length
-
-class AFLW2000(Dataset):
-    def __init__(self, data_dir, filename_path, transform, img_ext='.jpg', annot_ext='.mat'):
-        self.data_dir = data_dir
-        self.transform = transform
-        self.img_ext = img_ext
-        self.annot_ext = annot_ext
-
-        filename_list = get_list_from_filenames(filename_path)
-
-        self.X_train = filename_list
-        self.y_train = filename_list
-        self.length = len(filename_list)
-
-    def __getitem__(self, index):
-        img = Image.open(os.path.join(self.data_dir, self.X_train[index] + self.img_ext))
-        img = img.convert('RGB')
-
-        pose = utils.get_ypr_from_mat(os.path.join(self.data_dir, self.y_train[index] + self.annot_ext))
-        label = torch.FloatTensor(pose)
-
-        if self.transform is not None:
-            img = self.transform(img)
-
-        return img, label, self.X_train[index]
-
-    def __len__(self):
-        # 2,000
-        return self.length
-
-class Pose_300W_LP_binned(Dataset):
+class 300W_LP(Dataset):
     def __init__(self, data_dir, filename_path, transform, img_ext='.jpg', annot_ext='.mat', image_mode='RGB'):
         self.data_dir = data_dir
         self.transform = transform
@@ -127,7 +69,7 @@ class Pose_300W_LP_binned(Dataset):
         # 122,450
         return self.length
 
-class AFLW2000_binned(Dataset):
+class AFLW2000(Dataset):
     def __init__(self, data_dir, filename_path, transform, img_ext='.jpg', annot_ext='.mat', image_mode='RGB'):
         self.data_dir = data_dir
         self.transform = transform
@@ -206,6 +148,9 @@ class AFLW(Dataset):
         yaw = pose[0] * 180 / np.pi
         pitch = pose[1] * 180 / np.pi
         roll = pose[2] * 180 / np.pi
+        # Something weird with the roll in AFLW
+        if yaw < 0:
+            roll *= -1
         # Bin values
         bins = np.array(range(-99, 102, 3))
         labels = torch.LongTensor(np.digitize([yaw, pitch, roll], bins) - 1)
@@ -216,7 +161,8 @@ class AFLW(Dataset):
         return img, labels, self.X_train[index]
 
     def __len__(self):
-        # Check how many
+        # train: 18,863
+        # test: 1,966
         return self.length
 
 def get_list_from_filenames(file_path):

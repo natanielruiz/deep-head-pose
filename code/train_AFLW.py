@@ -102,7 +102,11 @@ if __name__ == '__main__':
     model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 6, 3], 66)
     # ResNet18
     # model = hopenet.Hopenet(torchvision.models.resnet.BasicBlock, [2, 2, 2, 2], 66)
-    load_filtered_state_dict(model, model_zoo.load_url(model_urls['resnet50']))
+
+    if args.finetune:
+        model.load_state_dict(torch.load(args.snapshot))
+    else:
+        load_filtered_state_dict(model, model_zoo.load_url(model_urls['resnet50']))
 
     print 'Loading data.'
 
@@ -128,6 +132,9 @@ if __name__ == '__main__':
     optimizer = torch.optim.Adam([{'params': get_ignored_params(model), 'lr': args.lr},
                                   {'params': get_non_ignored_params(model), 'lr': args.lr * 10}],
                                   lr = args.lr)
+    # optimizer = torch.optim.SGD([{'params': get_ignored_params(model), 'lr': args.lr},
+    #                               {'params': get_non_ignored_params(model), 'lr': args.lr * 10}],
+    #                               lr = args.lr, momentum = 0.9)
 
     print 'Ready to train network.'
 
@@ -178,13 +185,13 @@ if __name__ == '__main__':
                        %(epoch+1, num_epochs, i+1, len(pose_dataset)//batch_size, loss_yaw.data[0], loss_pitch.data[0], loss_roll.data[0]))
                 if epoch == 0:
                     torch.save(model.state_dict(),
-                    'output/snapshots/resnet50_AFLW_iter_'+ str(i+1) + '.pkl')
+                    'output/snapshots/resnet50_AFLW_finetuned_iter_'+ str(i+1) + '.pkl')
 
         # Save models at numbered epochs.
         if epoch % 1 == 0 and epoch < num_epochs - 1:
             print 'Taking snapshot...'
             torch.save(model.state_dict(),
-            'output/snapshots/resnet50_AFLW_epoch_'+ str(epoch+1) + '.pkl')
+            'output/snapshots/resnet50_AFLW_finetuned_epoch_'+ str(epoch+1) + '.pkl')
 
     # Save the final Trained Model
-    torch.save(model.state_dict(), 'output/snapshots/resnet50_AFLW_epoch' + str(epoch+1) + '.pkl')
+    torch.save(model.state_dict(), 'output/snapshots/resnet50_AFLW_finetuned_epoch_' + str(epoch+1) + '.pkl')
