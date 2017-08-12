@@ -2,3 +2,4 @@
 *.npy
 data/*
 output/*
+*.jpg
