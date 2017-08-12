@@ -1,1 +1,0 @@
-/Data/nruiz9/data/facial_landmarks/AFLW/aflw/data/flickr/3/image30986.jpg -0.993523657322 -0.21129886806 0.0821616351604 823 168 2018 2018

@@ -1,1 +1,0 @@
-/Data/nruiz9/data/facial_landmarks/AFLW/aflw/data/flickr/3/image60513.jpg 0.148362502456 -0.0177362784743 0.00321380398236 326 71 85 85
