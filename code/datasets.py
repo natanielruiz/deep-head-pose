@@ -11,7 +11,7 @@ def stack_grayscale_tensor(tensor):
     tensor = torch.cat([tensor, tensor, tensor], 0)
     return tensor
 
-class 300W_LP(Dataset):
+class Pose_300W_LP(Dataset):
     def __init__(self, data_dir, filename_path, transform, img_ext='.jpg', annot_ext='.mat', image_mode='RGB'):
         self.data_dir = data_dir
         self.transform = transform
@@ -164,6 +164,56 @@ class AFLW(Dataset):
         # train: 18,863
         # test: 1,966
         return self.length
+
+class AFW(Dataset):
+    def __init__(self, data_dir, filename_path, transform, img_ext='.jpg', annot_ext='.txt', image_mode='RGB'):
+        self.data_dir = data_dir
+        self.transform = transform
+        self.img_ext = img_ext
+        self.annot_ext = annot_ext
+
+        filename_list = get_list_from_filenames(filename_path)
+
+        self.X_train = filename_list
+        self.y_train = filename_list
+        self.image_mode = image_mode
+        self.length = len(filename_list)
+
+    def __getitem__(self, index):
+        txt_path = os.path.join(self.data_dir, self.y_train[index] + self.annot_ext)
+        img_name = self.X_train[index].split('_')[0]
+
+        img = Image.open(os.path.join(self.data_dir, img_name + self.img_ext))
+        img = img.convert(self.image_mode)
+        txt_path = os.path.join(self.data_dir, self.y_train[index] + self.annot_ext)
+
+        # We get the pose in degrees
+        annot = open(txt_path, 'r')
+        line = annot.readline().split(' ')
+        yaw, pitch, roll = [float(line[1]), float(line[2]), float(line[3])]
+
+        # Crop the face
+        margin = 40
+        x_min = float(line[4]) - margin
+        y_min = float(line[5]) - margin
+        x_max = float(line[6]) + margin
+        y_max = float(line[7]) + margin
+
+        img = img.crop((int(x_min), int(y_min), int(x_max), int(y_max)))
+
+        # Bin values
+        bins = np.array(range(-99, 102, 3))
+        labels = torch.LongTensor(np.digitize([yaw, pitch, roll], bins) - 1)
+
+        if self.transform is not None:
+            img = self.transform(img)
+
+        return img, labels, self.X_train[index]
+
+    def __len__(self):
+        # Around 200
+        return self.length
+
 
 def get_list_from_filenames(file_path):
     # input:    relative path to .txt file with file names

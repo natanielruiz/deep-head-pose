@@ -116,7 +116,7 @@ if __name__ == '__main__':
     transformations = transforms.Compose([transforms.Scale(224),transforms.RandomCrop(224),
                                           transforms.ToTensor()])
 
-    pose_dataset = datasets.300W_LP(args.data_dir, args.filename_list,
+    pose_dataset = datasets.Pose_300W_LP(args.data_dir, args.filename_list,
                                 transformations)
     train_loader = torch.utils.data.DataLoader(dataset=pose_dataset,
                                                batch_size=batch_size,
