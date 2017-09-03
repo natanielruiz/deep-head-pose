@@ -123,6 +123,14 @@ if __name__ == '__main__':
             sys.exit(0)
 
         x_min, y_min, x_max, y_max = int(line[1]), int(line[2]), int(line[3]), int(line[4])
+        x_min -= 100
+        x_max += 100
+        y_min -= 200
+        y_max += 50
+        x_min = max(x_min, 0)
+        y_min = max(y_min, 0)
+        x_max = min(frame.shape[1], x_max)
+        y_max = min(frame.shape[0], y_max)
         # Crop image
         img = frame[y_min:y_max,x_min:x_max]
         img = Image.fromarray(img)
@@ -145,6 +153,8 @@ if __name__ == '__main__':
         # Print new frame with cube and TODO: axis
         txt_out.write(str(frame_num) + ' %f %f %f\n' % (yaw_predicted, pitch_predicted, roll_predicted))
         utils.plot_pose_cube(frame, yaw_predicted, pitch_predicted, roll_predicted, (x_min + x_max) / 2, (y_min + y_max) / 2, size = 200)
+        # Plot expanded bounding box
+        cv2.rectangle(frame, (x_min, y_min), (x_max, y_max), (0,255,0), 3)
         out.write(frame)
 
         frame_num += 1
