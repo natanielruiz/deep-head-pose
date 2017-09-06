@@ -41,6 +41,10 @@ def parse_args():
           default='', type=str)
     parser.add_argument('--filename_list', dest='filename_list', help='Path to text file containing relative paths for every example.',
           default='', type=str)
+    parser.add_argument('--finetune', dest='finetune', help='Boolean: finetune or from Imagenet pretrain.',
+          default=False, type=bool)
+    parser.add_argument('--snapshot', dest='snapshot', help='Path to finetune snapshot.',
+          default='', type=str)
 
     args = parser.parse_args()
 
@@ -98,19 +102,24 @@ if __name__ == '__main__':
     model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 6, 3], 66)
     # ResNet18
     # model = hopenet.Hopenet(torchvision.models.resnet.BasicBlock, [2, 2, 2, 2], 66)
-    load_filtered_state_dict(model, model_zoo.load_url(model_urls['resnet50']))
+
+    if args.finetune:
+        print 'Finetuning.'
+        model.load_state_dict(torch.load(args.snapshot))
+    else:
+        load_filtered_state_dict(model, model_zoo.load_url(model_urls['resnet50']))
 
     print 'Loading data.'
 
-    # transformations = transforms.Compose([transforms.Scale(224),
-    #                                       transforms.RandomCrop(224),
-    #                                       transforms.ToTensor()])
+    transformations = transforms.Compose([transforms.Scale(224),
+                                          transforms.RandomCrop(224),
+                                          transforms.ToTensor()])
 
-    transformations = transforms.Compose([transforms.Scale(250),
+    transformations = transforms.Compose([transforms.Scale(224),
     transforms.RandomCrop(224), transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
 
-    pose_dataset = datasets.Pose_300W_LP(args.data_dir, args.filename_list,
+    pose_dataset = datasets.BIWI(args.data_dir, args.filename_list,
                                 transformations)
     train_loader = torch.utils.data.DataLoader(dataset=pose_dataset,
                                                batch_size=batch_size,
@@ -126,13 +135,13 @@ if __name__ == '__main__':
     idx_tensor = [idx for idx in xrange(66)]
     idx_tensor = torch.FloatTensor(idx_tensor).cuda(gpu)
 
-    optimizer = torch.optim.Adam([{'params': get_ignored_params(model), 'lr': args.lr},
-                                  {'params': get_non_ignored_params(model), 'lr': args.lr * 10}],
-                                  lr = args.lr)
-    # optimizer = torch.optim.SGD([{'params': get_ignored_params(model), 'lr': args.lr},
+    # optimizer = torch.optim.Adam([{'params': get_ignored_params(model), 'lr': args.lr},
     #                               {'params': get_non_ignored_params(model), 'lr': args.lr}],
-    #                               lr = args.lr,
-    #                               momentum = 0.9, weight_decay=0.01)
+    #                               lr = args.lr)
+
+    optimizer = torch.optim.SGD([{'params': get_ignored_params(model), 'lr': args.lr},
+                                  {'params': get_non_ignored_params(model), 'lr': args.lr}],
+                                  lr = args.lr, momentum=0.9, weight_decay=0.01)
 
     print 'Ready to train network.'
 
@@ -184,13 +193,13 @@ if __name__ == '__main__':
                        %(epoch+1, num_epochs, i+1, len(pose_dataset)//batch_size, loss_yaw.data[0], loss_pitch.data[0], loss_roll.data[0]))
                 # if epoch == 0:
                 #     torch.save(model.state_dict(),
-                #     'output/snapshots/resnet50_lbatch_iter_'+ str(i+1) + '.pkl')
+                #     'output/snapshots/resnet50_ftbiwi_iter_'+ str(i+1) + '.pkl')
 
         # Save models at numbered epochs.
         if epoch % 1 == 0 and epoch < num_epochs - 1:
             print 'Taking snapshot...'
             torch.save(model.state_dict(),
-            'output/snapshots/resnet50_norm_norot_epoch_'+ str(epoch+1) + '.pkl')
+            'output/snapshots/resnet50_ftbiwi_epoch_'+ str(epoch+1) + '.pkl')
 
     # Save the final Trained Model
-    torch.save(model.state_dict(), 'output/snapshots/resnet50_norm_norot_epoch_' + str(epoch+1) + '.pkl')
+    torch.save(model.state_dict(), 'output/snapshots/resnet50_ftbiwi_epoch_' + str(epoch+1) + '.pkl')

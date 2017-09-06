@@ -60,7 +60,8 @@ if __name__ == '__main__':
     print 'Loading data.'
 
     transformations = transforms.Compose([transforms.Scale(224),
-    transforms.RandomCrop(224), transforms.ToTensor()])
+    transforms.RandomCrop(224), transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
 
     model.cuda(gpu)
 
@@ -123,10 +124,10 @@ if __name__ == '__main__':
             sys.exit(0)
 
         x_min, y_min, x_max, y_max = int(line[1]), int(line[2]), int(line[3]), int(line[4])
-        x_min -= 100
-        x_max += 100
-        y_min -= 200
-        y_max += 50
+        x_min -= 150
+        x_max += 150
+        y_min -= 250
+        y_max += 100
         x_min = max(x_min, 0)
         y_min = max(y_min, 0)
         x_max = min(frame.shape[1], x_max)

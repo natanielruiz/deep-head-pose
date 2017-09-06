@@ -66,7 +66,7 @@ if __name__ == '__main__':
     transforms.RandomCrop(224), transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
 
-    pose_dataset = datasets.AFLW2000(args.data_dir, args.filename_list,
+    pose_dataset = datasets.BIWI(args.data_dir, args.filename_list,
                                 transformations)
     test_loader = torch.utils.data.DataLoader(dataset=pose_dataset,
                                                batch_size=args.batch_size,
