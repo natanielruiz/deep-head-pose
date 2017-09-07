@@ -190,7 +190,7 @@ if __name__ == '__main__':
         if epoch % 1 == 0 and epoch < num_epochs - 1:
             print 'Taking snapshot...'
             torch.save(model.state_dict(),
-            'output/snapshots/resnet50_norm_norot_epoch_'+ str(epoch+1) + '.pkl')
+            'output/snapshots/resnet50_norm_30rot_epoch_'+ str(epoch+1) + '.pkl')
 
     # Save the final Trained Model
-    torch.save(model.state_dict(), 'output/snapshots/resnet50_norm_norot_epoch_' + str(epoch+1) + '.pkl')
+    torch.save(model.state_dict(), 'output/snapshots/resnet50_norm_30rot_epoch_' + str(epoch+1) + '.pkl')
