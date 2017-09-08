@@ -100,22 +100,44 @@ if __name__ == '__main__':
         label_pitch = labels[:,1].float()
         label_roll = labels[:,2].float()
 
-        pre_yaw, pre_pitch, pre_roll, angles = model(images)
-        yaw = angles[:,0].cpu().data
-        pitch = angles[:,1].cpu().data
-        roll = angles[:,2].cpu().data
+        yaw, pitch, roll = model(images)
+
+        # Binned predictions
+        _, yaw_bpred = torch.max(yaw.data, 1)
+        _, pitch_bpred = torch.max(pitch.data, 1)
+        _, roll_bpred = torch.max(roll.data, 1)
+
+        # Continuous predictions
+        yaw_predicted = utils.softmax_temperature(yaw.data, 1)
+        pitch_predicted = utils.softmax_temperature(pitch.data, 1)
+        roll_predicted = utils.softmax_temperature(roll.data, 1)
+
+        yaw_predicted = torch.sum(yaw_predicted * idx_tensor, 1).cpu()
+        pitch_predicted = torch.sum(pitch_predicted * idx_tensor, 1).cpu()
+        roll_predicted = torch.sum(roll_predicted * idx_tensor, 1).cpu()
 
         # Mean absolute error
-        yaw_error += torch.sum(torch.abs(yaw - label_yaw) * 3)
-        pitch_error += torch.sum(torch.abs(pitch - label_pitch) * 3)
-        roll_error += torch.sum(torch.abs(roll - label_roll) * 3)
+        yaw_error += torch.sum(torch.abs(yaw_predicted - label_yaw) * 3)
+        pitch_error += torch.sum(torch.abs(pitch_predicted - label_pitch) * 3)
+        roll_error += torch.sum(torch.abs(roll_predicted - label_roll) * 3)
+
+        # Binned Accuracy
+        # for er in xrange(n_margins):
+        #     yaw_bpred[er] += (label_yaw[0] in range(yaw_bpred[0,0] - er, yaw_bpred[0,0] + er + 1))
+        #     pitch_bpred[er] += (label_pitch[0] in range(pitch_bpred[0,0] - er, pitch_bpred[0,0] + er + 1))
+        #     roll_bpred[er] += (label_roll[0] in range(roll_bpred[0,0] - er, roll_bpred[0,0] + er + 1))
+
+        # print label_yaw[0], yaw_bpred[0,0]
 
         # Save images with pose cube.
         # TODO: fix for larger batch size
         if args.save_viz:
             name = name[0]
             cv2_img = cv2.imread(os.path.join(args.data_dir, name + '.jpg'))
-            utils.plot_pose_cube(cv2_img, yaw[0] * 3 - 99, pitch[0] * 3 - 99, roll[0] * 3 - 99)
+            #print os.path.join('output/images', name + '.jpg')
+            #print label_yaw[0] * 3 - 99, label_pitch[0] * 3 - 99, label_roll[0] * 3 - 99
+            #print yaw_predicted * 3 - 99, pitch_predicted * 3 - 99, roll_predicted * 3 - 99
+            utils.plot_pose_cube(cv2_img, yaw_predicted[0] * 3 - 99, pitch_predicted[0] * 3 - 99, roll_predicted[0] * 3 - 99)
             cv2.imwrite(os.path.join('output/images', name + '.jpg'), cv2_img)
 
     print('Test error in degrees of the model on the ' + str(total) +

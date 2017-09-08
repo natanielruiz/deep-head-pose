@@ -60,14 +60,14 @@ class Pose_300W_LP(Dataset):
             img = img.transpose(Image.FLIP_LEFT_RIGHT)
 
         # Rotate?
-        rnd = np.random.random_sample()
-        if rnd < 0.5:
-            if roll >= 0:
-                img = img.rotate(30)
-                roll -= 30
-            else:
-                img = img.rotate(-30)
-                roll += 30
+        # rnd = np.random.random_sample()
+        # if rnd < 0.5:
+        #     if roll >= 0:
+        #         img = img.rotate(30)
+        #         roll -= 30
+        #     else:
+        #         img = img.rotate(-30)
+        #         roll += 30
 
         # Bin values
         bins = np.array(range(-99, 102, 3))
