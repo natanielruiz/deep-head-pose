@@ -88,12 +88,6 @@ class Hopenet(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def get_expectation(angle):
-        angle_pred = F.softmax(angle)
-
-        angle_pred = torch.sum(angle_pred.data * self.idx_tensor, 1)
-        return angle_pred
-
     def forward(self, x):
         x = self.conv1(x)
         x = self.bn1(x)

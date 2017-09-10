@@ -43,7 +43,7 @@ if __name__ == '__main__':
 
     cudnn.enabled = True
     gpu = args.gpu_id
-    snapshot_path = os.path.join('output/snapshots', args.snapshot + '.pkl')
+    snapshot_path = args.snapshot
 
     # ResNet101 with 3 outputs.
     # model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 23, 3], 66)

@@ -54,6 +54,7 @@ def get_ignored_params(model):
     b = []
     b.append(model.conv1)
     b.append(model.bn1)
+    b.append(model.fc_finetune)
     for i in range(len(b)):
         for module_name, module in b[i].named_modules():
             if 'bn' in module_name:
@@ -80,7 +81,6 @@ def get_fc_params(model):
     b.append(model.fc_yaw)
     b.append(model.fc_pitch)
     b.append(model.fc_roll)
-    b.append(model.fc_finetune)
     for i in range(len(b)):
         for module_name, module in b[i].named_modules():
             for name, param in module.named_parameters():

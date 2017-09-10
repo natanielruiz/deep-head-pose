@@ -27,7 +27,7 @@ def parse_args():
           default='', type=str)
     parser.add_argument('--filename_list', dest='filename_list', help='Path to text file containing relative paths for every example.',
           default='', type=str)
-    parser.add_argument('--snapshot', dest='snapshot', help='Name of model snapshot.',
+    parser.add_argument('--snapshot', dest='snapshot', help='Path of model snapshot.',
           default='', type=str)
     parser.add_argument('--batch_size', dest='batch_size', help='Batch size.',
           default=1, type=int)
@@ -43,7 +43,7 @@ if __name__ == '__main__':
 
     cudnn.enabled = True
     gpu = args.gpu_id
-    snapshot_path = os.path.join('output/snapshots', args.snapshot + '.pkl')
+    snapshot_path = args.snapshot
 
     # ResNet101 with 3 outputs.
     # model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 23, 3], 66)
@@ -58,9 +58,6 @@ if __name__ == '__main__':
     model.load_state_dict(saved_state_dict)
 
     print 'Loading data.'
-
-    # transformations = transforms.Compose([transforms.Scale(224),
-    # transforms.RandomCrop(224), transforms.ToTensor()])
 
     transformations = transforms.Compose([transforms.Scale(224),
     transforms.RandomCrop(224), transforms.ToTensor(),
@@ -101,9 +98,9 @@ if __name__ == '__main__':
         label_roll = labels[:,2].float()
 
         pre_yaw, pre_pitch, pre_roll, angles = model(images)
-        yaw = angles[:,0].cpu().data
-        pitch = angles[:,1].cpu().data
-        roll = angles[:,2].cpu().data
+        yaw = angles[0][:,0].cpu().data
+        pitch = angles[0][:,1].cpu().data
+        roll = angles[0][:,2].cpu().data
 
         # Mean absolute error
         yaw_error += torch.sum(torch.abs(yaw - label_yaw) * 3)
