@@ -134,7 +134,7 @@ if __name__ == '__main__':
     criterion = nn.CrossEntropyLoss().cuda()
     reg_criterion = nn.MSELoss().cuda()
     # Regression loss coefficient
-    alpha = 0.00
+    alpha = args.alpha
 
     idx_tensor = [idx for idx in xrange(66)]
     idx_tensor = Variable(torch.FloatTensor(idx_tensor)).cuda(gpu)
