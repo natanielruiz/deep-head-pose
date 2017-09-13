@@ -241,7 +241,7 @@ if __name__ == '__main__':
 
             # Finetuning loss
             loss_seq = [loss_yaw, loss_pitch, loss_roll]
-            for idx in xrange(args.iter_ref):
+            for idx in xrange(args.iter_ref+1):
                 loss_angles = reg_criterion(angles[idx], label_angles.float())
                 loss_seq.append(loss_angles)
 

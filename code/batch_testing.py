@@ -123,9 +123,9 @@ if __name__ == '__main__':
             label_roll = labels[:,2].float()
 
             pre_yaw, pre_pitch, pre_roll, angles = model(images)
-            yaw = angles[args.iter_ref-1][:,0].cpu().data
-            pitch = angles[args.iter_ref-1][:,1].cpu().data
-            roll = angles[args.iter_ref-1][:,2].cpu().data
+            yaw = angles[args.iter_ref][:,0].cpu().data
+            pitch = angles[args.iter_ref][:,1].cpu().data
+            roll = angles[args.iter_ref][:,2].cpu().data
 
             # Mean absolute error
             yaw_error += torch.sum(torch.abs(yaw - label_yaw) * 3)
