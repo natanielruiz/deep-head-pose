@@ -27,13 +27,12 @@ def parse_args():
           default='', type=str)
     parser.add_argument('--filename_list', dest='filename_list', help='Path to text file containing relative paths for every example.',
           default='', type=str)
-    parser.add_argument('--snapshot', dest='snapshot', help='Path of model snapshot.',
+    parser.add_argument('--snapshot', dest='snapshot', help='Name of model snapshot.',
           default='', type=str)
     parser.add_argument('--batch_size', dest='batch_size', help='Batch size.',
           default=1, type=int)
     parser.add_argument('--save_viz', dest='save_viz', help='Save images with pose cube.',
           default=False, type=bool)
-    parser.add_argument('--iter_ref', dest='iter_ref', default=1, type=int)
 
     args = parser.parse_args()
 
@@ -49,7 +48,7 @@ if __name__ == '__main__':
     # ResNet101 with 3 outputs.
     # model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 23, 3], 66)
     # ResNet50
-    model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 6, 3], 66, args.iter_ref)
+    model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 6, 3], 66)
     # ResNet18
     # model = hopenet.Hopenet(torchvision.models.resnet.BasicBlock, [2, 2, 2, 2], 66)
 
@@ -60,11 +59,14 @@ if __name__ == '__main__':
 
     print 'Loading data.'
 
+    # transformations = transforms.Compose([transforms.Scale(224),
+    # transforms.RandomCrop(224), transforms.ToTensor()])
+
     transformations = transforms.Compose([transforms.Scale(224),
-    transforms.RandomCrop(224), transforms.ToTensor(),
+    transforms.CenterCrop(224), transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
 
-    pose_dataset = datasets.AFLW2000(args.data_dir, args.filename_list,
+    pose_dataset = datasets.BIWI(args.data_dir, args.filename_list,
                                 transformations)
     test_loader = torch.utils.data.DataLoader(dataset=pose_dataset,
                                                batch_size=args.batch_size,
@@ -98,22 +100,44 @@ if __name__ == '__main__':
         label_pitch = labels[:,1].float()
         label_roll = labels[:,2].float()
 
-        pre_yaw, pre_pitch, pre_roll, angles = model(images)
-        yaw = angles[args.iter_ref-1][:,0].cpu().data
-        pitch = angles[args.iter_ref-1][:,1].cpu().data
-        roll = angles[args.iter_ref-1][:,2].cpu().data
+        yaw, pitch, roll, angles = model(images)
+
+        # Binned predictions
+        _, yaw_bpred = torch.max(yaw.data, 1)
+        _, pitch_bpred = torch.max(pitch.data, 1)
+        _, roll_bpred = torch.max(roll.data, 1)
+
+        # Continuous predictions
+        yaw_predicted = utils.softmax_temperature(yaw.data, 1)
+        pitch_predicted = utils.softmax_temperature(pitch.data, 1)
+        roll_predicted = utils.softmax_temperature(roll.data, 1)
+
+        yaw_predicted = torch.sum(yaw_predicted * idx_tensor, 1).cpu()
+        pitch_predicted = torch.sum(pitch_predicted * idx_tensor, 1).cpu()
+        roll_predicted = torch.sum(roll_predicted * idx_tensor, 1).cpu()
 
         # Mean absolute error
-        yaw_error += torch.sum(torch.abs(yaw - label_yaw) * 3)
-        pitch_error += torch.sum(torch.abs(pitch - label_pitch) * 3)
-        roll_error += torch.sum(torch.abs(roll - label_roll) * 3)
+        yaw_error += torch.sum(torch.abs(yaw_predicted - label_yaw) * 3)
+        pitch_error += torch.sum(torch.abs(pitch_predicted - label_pitch) * 3)
+        roll_error += torch.sum(torch.abs(roll_predicted - label_roll) * 3)
+
+        # Binned Accuracy
+        # for er in xrange(n_margins):
+        #     yaw_bpred[er] += (label_yaw[0] in range(yaw_bpred[0,0] - er, yaw_bpred[0,0] + er + 1))
+        #     pitch_bpred[er] += (label_pitch[0] in range(pitch_bpred[0,0] - er, pitch_bpred[0,0] + er + 1))
+        #     roll_bpred[er] += (label_roll[0] in range(roll_bpred[0,0] - er, roll_bpred[0,0] + er + 1))
+
+        # print label_yaw[0], yaw_bpred[0,0]
 
         # Save images with pose cube.
         # TODO: fix for larger batch size
         if args.save_viz:
             name = name[0]
-            cv2_img = cv2.imread(os.path.join(args.data_dir, name + '.jpg'))
-            utils.plot_pose_cube(cv2_img, yaw[0] * 3 - 99, pitch[0] * 3 - 99, roll[0] * 3 - 99)
+            cv2_img = cv2.imread(os.path.join(args.data_dir, name + '_rgb.png'))
+            #print os.path.join('output/images', name + '.jpg')
+            #print label_yaw[0] * 3 - 99, label_pitch[0] * 3 - 99, label_roll[0] * 3 - 99
+            #print yaw_predicted * 3 - 99, pitch_predicted * 3 - 99, roll_predicted * 3 - 99
+            utils.plot_pose_cube(cv2_img, yaw_predicted[0] * 3 - 99, pitch_predicted[0] * 3 - 99, roll_predicted[0] * 3 - 99)
             cv2.imwrite(os.path.join('output/images', name + '.jpg'), cv2_img)
 
     print('Test error in degrees of the model on the ' + str(total) +

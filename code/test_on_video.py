@@ -141,7 +141,7 @@ if __name__ == '__main__':
         img_shape = img.size()
         img = img.view(1, img_shape[0], img_shape[1], img_shape[2])
         img = Variable(img).cuda(gpu)
-        yaw, pitch, roll = model(img)
+        yaw, pitch, roll, angles = model(img)
 
         yaw_predicted = F.softmax(yaw)
         pitch_predicted = F.softmax(pitch)

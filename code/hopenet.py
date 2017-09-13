@@ -41,7 +41,7 @@ class Simple_CNN(nn.Module):
 
 class Hopenet(nn.Module):
     # This is just Hopenet with 3 output layers for yaw, pitch and roll.
-    def __init__(self, block, layers, num_bins):
+    def __init__(self, block, layers, num_bins, iter_ref):
         self.inplanes = 64
         super(Hopenet, self).__init__()
         self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
@@ -62,6 +62,8 @@ class Hopenet(nn.Module):
         self.fc_finetune = nn.Linear(512 * block.expansion + 3, 3)
 
         self.idx_tensor = Variable(torch.FloatTensor(range(66))).cuda()
+
+        self.iter_ref = iter_ref
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -117,7 +119,7 @@ class Hopenet(nn.Module):
         angles = []
         angles.append(torch.cat([yaw, pitch, roll], 1))
 
-        for idx in xrange(1):
+        for idx in xrange(self.iter_ref):
             angles.append(self.fc_finetune(torch.cat((angles[-1], x), 1)))
 
         return pre_yaw, pre_pitch, pre_roll, angles

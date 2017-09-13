@@ -45,7 +45,7 @@ def parse_args():
           default='', type=str)
     parser.add_argument('--output_string', dest='output_string', help='String appended to output snapshots.', default = '', type=str)
     parser.add_argument('--alpha', dest='alpha', help='Regression loss coefficient.',
-          default=0.001, type=float)
+          default=0.00, type=float)
     args = parser.parse_args()
     return args
 
@@ -118,11 +118,11 @@ if __name__ == '__main__':
 
     print 'Loading data.'
 
-    transformations = transforms.Compose([transforms.Scale(240),
+    transformations = transforms.Compose([transforms.Scale(224),
     transforms.RandomCrop(224), transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
 
-    pose_dataset = datasets.Pose_300W_LP(args.data_dir, args.filename_list,
+    pose_dataset = datasets.AFLW(args.data_dir, args.filename_list,
                                 transformations)
     train_loader = torch.utils.data.DataLoader(dataset=pose_dataset,
                                                batch_size=batch_size,
@@ -131,8 +131,8 @@ if __name__ == '__main__':
 
     model.cuda(gpu)
     softmax = nn.Softmax()
-    criterion = nn.CrossEntropyLoss().cuda()
-    reg_criterion = nn.MSELoss().cuda()
+    criterion = nn.CrossEntropyLoss().cuda(gpu)
+    reg_criterion = nn.MSELoss().cuda(gpu)
     # Regression loss coefficient
     alpha = args.alpha
 
