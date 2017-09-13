@@ -60,7 +60,7 @@ if __name__ == '__main__':
     print 'Loading data.'
 
     transformations = transforms.Compose([transforms.Scale(224),
-    transforms.RandomCrop(224), transforms.ToTensor()])
+    transforms.CenterCrop(224), transforms.ToTensor()])
 
     pose_dataset = datasets.AFW(args.data_dir, args.filename_list,
                                 transformations)

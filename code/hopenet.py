@@ -120,7 +120,7 @@ class Hopenet(nn.Module):
         angles.append(torch.cat([yaw, pitch, roll], 1))
 
         for idx in xrange(self.iter_ref):
-            angles.append(self.fc_finetune(torch.cat((angles[-1], x), 1)))
+            angles.append(self.fc_finetune(torch.cat((angles[idx], x), 1)))
 
         return pre_yaw, pre_pitch, pre_roll, angles
 
