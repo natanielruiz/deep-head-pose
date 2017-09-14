@@ -251,8 +251,6 @@ if __name__ == '__main__':
             loss_pitch += alpha * loss_reg_pitch
             loss_roll += alpha * loss_reg_roll
 
-            loss_yaw *= 1
-
             # Finetuning loss
             loss_seq = [loss_yaw, loss_pitch, loss_roll]
             for idx in xrange(1,len(angles)):
