@@ -197,7 +197,7 @@ if __name__ == '__main__':
             loss_pitch += alpha * loss_reg_pitch
             loss_roll += alpha * loss_reg_roll
 
-            loss_yaw *= 0.35
+            loss_yaw *= 1
 
             loss_seq = [loss_yaw, loss_pitch, loss_roll]
             # loss_seq = [loss_reg_yaw, loss_reg_pitch, loss_reg_roll]

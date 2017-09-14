@@ -60,9 +60,6 @@ if __name__ == '__main__':
 
     print 'Loading data.'
 
-    # transformations = transforms.Compose([transforms.Scale(224),
-    # transforms.RandomCrop(224), transforms.ToTensor()])
-
     transformations = transforms.Compose([transforms.Scale(224),
     transforms.CenterCrop(224), transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
@@ -90,10 +87,6 @@ if __name__ == '__main__':
     # Test the Model
     model.eval()  # Change model to 'eval' mode (BN uses moving mean/var).
     total = 0
-    n_margins = 20
-    yaw_correct = np.zeros(n_margins)
-    pitch_correct = np.zeros(n_margins)
-    roll_correct = np.zeros(n_margins)
 
     idx_tensor = [idx for idx in xrange(66)]
     idx_tensor = torch.FloatTensor(idx_tensor).cuda(gpu)
@@ -132,29 +125,14 @@ if __name__ == '__main__':
         pitch_error += torch.sum(torch.abs(pitch_predicted - label_pitch) * 3)
         roll_error += torch.sum(torch.abs(roll_predicted - label_roll) * 3)
 
-        # Binned Accuracy
-        # for er in xrange(n_margins):
-        #     yaw_bpred[er] += (label_yaw[0] in range(yaw_bpred[0,0] - er, yaw_bpred[0,0] + er + 1))
-        #     pitch_bpred[er] += (label_pitch[0] in range(pitch_bpred[0,0] - er, pitch_bpred[0,0] + er + 1))
-        #     roll_bpred[er] += (label_roll[0] in range(roll_bpred[0,0] - er, roll_bpred[0,0] + er + 1))
-
-        # print label_yaw[0], yaw_bpred[0,0]
-
         # Save images with pose cube.
         # TODO: fix for larger batch size
         if args.save_viz:
             name = name[0]
             cv2_img = cv2.imread(os.path.join(args.data_dir, name + '.jpg'))
-            #print os.path.join('output/images', name + '.jpg')
-            #print label_yaw[0] * 3 - 99, label_pitch[0] * 3 - 99, label_roll[0] * 3 - 99
-            #print yaw_predicted * 3 - 99, pitch_predicted * 3 - 99, roll_predicted * 3 - 99
             utils.plot_pose_cube(cv2_img, yaw_predicted[0] * 3 - 99, pitch_predicted[0] * 3 - 99, roll_predicted[0] * 3 - 99)
             cv2.imwrite(os.path.join('output/images', name + '.jpg'), cv2_img)
 
     print('Test error in degrees of the model on the ' + str(total) +
     ' test images. Yaw: %.4f, Pitch: %.4f, Roll: %.4f' % (yaw_error / total,
     pitch_error / total, roll_error / total))
-
-    # Binned accuracy
-    # for idx in xrange(len(yaw_correct)):
-    #     print yaw_correct[idx] / total, pitch_correct[idx] / total, roll_correct[idx] / total
