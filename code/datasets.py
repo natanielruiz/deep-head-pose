@@ -174,7 +174,6 @@ class AFLW(Dataset):
         pitch = pose[1] * 180 / np.pi
         roll = pose[2] * 180 / np.pi
         # Something weird with the roll in AFLW
-        # if yaw < 0:
         roll *= -1
         # Bin values
         bins = np.array(range(-99, 102, 3))

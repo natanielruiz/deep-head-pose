@@ -117,10 +117,12 @@ class Hopenet(nn.Module):
         pitch = pitch.view(pitch.size(0), 1)
         roll = roll.view(roll.size(0), 1)
         angles = []
-        angles.append(torch.cat([yaw, pitch, roll], 1))
+        preangles = torch.cat([yaw, pitch, roll], 1)
+        angles.append(preangles)
 
+        # angles predicts the residual
         for idx in xrange(self.iter_ref):
-            angles.append(self.fc_finetune(torch.cat((angles[idx], x), 1)))
+            angles.append(self.fc_finetune(torch.cat((preangles, x), 1)))
 
         return pre_yaw, pre_pitch, pre_roll, angles
 

@@ -46,6 +46,8 @@ def parse_args():
     parser.add_argument('--output_string', dest='output_string', help='String appended to output snapshots.', default = '', type=str)
     parser.add_argument('--alpha', dest='alpha', help='Regression loss coefficient.',
           default=0.001, type=float)
+    parser.add_argument('--dataset', dest='dataset', help='Dataset type.', default='Pose_300W_LP', type=str)
+
     args = parser.parse_args()
     return args
 
@@ -111,7 +113,7 @@ if __name__ == '__main__':
     # ResNet101 with 3 outputs
     # model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 23, 3], 66)
     # ResNet50
-    model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 6, 3], 66)
+    model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 6, 3], 66, 0)
     # ResNet18
     # model = hopenet.Hopenet(torchvision.models.resnet.BasicBlock, [2, 2, 2, 2], 66)
     load_filtered_state_dict(model, model_zoo.load_url(model_urls['resnet50']))
@@ -122,8 +124,20 @@ if __name__ == '__main__':
     transforms.RandomCrop(224), transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
 
-    pose_dataset = datasets.Pose_300W_LP(args.data_dir, args.filename_list,
-                                transformations)
+
+    if args.dataset == 'Pose_300W_LP':
+        pose_dataset = datasets.Pose_300W_LP(args.data_dir, args.filename_list, transformations)
+    elif args.dataset == 'AFLW2000':
+        pose_dataset = datasets.AFLW2000(args.data_dir, args.filename_list, transformations)
+    elif args.dataset == 'BIWI':
+        pose_dataset = datasets.BIWI(args.data_dir, args.filename_list, transformations)
+    elif args.dataset == 'AFLW':
+        pose_dataset = datasets.AFLW(args.data_dir, args.filename_list, transformations)
+    elif args.dataset == 'AFW':
+        pose_dataset = datasets.AFW(args.data_dir, args.filename_list, transformations)
+    else:
+        print 'Error: not a valid dataset name'
+        sys.exit()
     train_loader = torch.utils.data.DataLoader(dataset=pose_dataset,
                                                batch_size=batch_size,
                                                shuffle=True,
@@ -182,6 +196,8 @@ if __name__ == '__main__':
             loss_yaw += alpha * loss_reg_yaw
             loss_pitch += alpha * loss_reg_pitch
             loss_roll += alpha * loss_reg_roll
+
+            loss_yaw *= 0.35
 
             loss_seq = [loss_yaw, loss_pitch, loss_roll]
             # loss_seq = [loss_reg_yaw, loss_reg_pitch, loss_reg_roll]

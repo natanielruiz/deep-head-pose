@@ -18,8 +18,6 @@ import datasets
 import hopenet
 import utils
 
-import glob
-
 def parse_args():
     """Parse input arguments."""
     parser = argparse.ArgumentParser(description='Head pose estimation using the Hopenet network.')
@@ -29,15 +27,15 @@ def parse_args():
           default='', type=str)
     parser.add_argument('--filename_list', dest='filename_list', help='Path to text file containing relative paths for every example.',
           default='', type=str)
-    parser.add_argument('--snapshot_folder', dest='snapshot_folder', help='Name of model snapshot folder.',
+    parser.add_argument('--snapshot', dest='snapshot', help='Path of model snapshot.',
           default='', type=str)
     parser.add_argument('--batch_size', dest='batch_size', help='Batch size.',
           default=1, type=int)
     parser.add_argument('--save_viz', dest='save_viz', help='Save images with pose cube.',
           default=False, type=bool)
-    parser.add_argument('--iter_ref', dest='iter_ref', help='Number of iterative refinement passes.',
-          default=1, type=int)
+    parser.add_argument('--iter_ref', dest='iter_ref', default=1, type=int)
     parser.add_argument('--dataset', dest='dataset', help='Dataset type.', default='AFLW2000', type=str)
+
     args = parser.parse_args()
 
     return args
@@ -47,6 +45,7 @@ if __name__ == '__main__':
 
     cudnn.enabled = True
     gpu = args.gpu_id
+    snapshot_path = args.snapshot
 
     # ResNet101 with 3 outputs.
     # model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 23, 3], 66)
@@ -55,9 +54,10 @@ if __name__ == '__main__':
     # ResNet18
     # model = hopenet.Hopenet(torchvision.models.resnet.BasicBlock, [2, 2, 2, 2], 66)
 
-    print 'Loading snapshot list.'
+    print 'Loading snapshot.'
     # Load snapshot
-    snapshot_list = sorted(glob.glob(os.path.join(args.snapshot_folder, '*.pkl')))
+    saved_state_dict = torch.load(snapshot_path)
+    model.load_state_dict(saved_state_dict)
 
     print 'Loading data.'
 
@@ -85,63 +85,56 @@ if __name__ == '__main__':
 
     print 'Ready to test network.'
 
-    prefix = args.snapshot_folder.split('/')[-1]
-    if prefix == '':
-        prefix = args.snapshot_folder.split('/')[-2]
-    output_file_name = prefix + '_' + args.dataset + '_angles.txt'
-    txt_output = open(os.path.join('output/batch_snapshots', output_file_name), 'w')
+    # Test the Model
+    model.eval()  # Change model to 'eval' mode (BN uses moving mean/var).
+    total = 0
+    yaw_error = .0
+    pitch_error = .0
+    roll_error = .0
 
-    for snapshot_path in snapshot_list:
-        snapshot_name = snapshot_path.split('/')[-1].split('.')[0]
-        print 'Loading snapshot ' + snapshot_name
+    l1loss = torch.nn.L1Loss(size_average=False)
 
-        saved_state_dict = torch.load(snapshot_path)
-        model.load_state_dict(saved_state_dict)
+    for i, (images, labels, name) in enumerate(test_loader):
+        images = Variable(images).cuda(gpu)
+        total += labels.size(0)
+        label_yaw = labels[:,0].float()
+        label_pitch = labels[:,1].float()
+        label_roll = labels[:,2].float()
 
-        # Test the Model
-        model.eval()  # Change model to 'eval' mode (BN uses moving mean/var).
-        total = 0
-        n_margins = 20
-        yaw_correct = np.zeros(n_margins)
-        pitch_correct = np.zeros(n_margins)
-        roll_correct = np.zeros(n_margins)
+        pre_yaw, pre_pitch, pre_roll, angles = model(images)
+        yaw = angles[0][:,0].cpu().data
+        pitch = angles[0][:,1].cpu().data
+        roll = angles[0][:,2].cpu().data
 
-        idx_tensor = [idx for idx in xrange(66)]
-        idx_tensor = torch.FloatTensor(idx_tensor).cuda(gpu)
+        for idx in xrange(1,args.iter_ref+1):
+            yaw += angles[idx][:,0].cpu().data
+            pitch += angles[idx][:,1].cpu().data
+            roll += angles[idx][:,2].cpu().data
 
-        yaw_error = .0
-        pitch_error = .0
-        roll_error = .0
+        # Mean absolute error
+        yaw_error += torch.sum(torch.abs(yaw - label_yaw) * 3)
+        pitch_error += torch.sum(torch.abs(pitch - label_pitch) * 3)
+        roll_error += torch.sum(torch.abs(roll - label_roll) * 3)
 
-        l1loss = torch.nn.L1Loss(size_average=False)
-
-        for i, (images, labels, name) in enumerate(test_loader):
-            images = Variable(images).cuda(gpu)
-            total += labels.size(0)
-            label_yaw = labels[:,0].float()
-            label_pitch = labels[:,1].float()
-            label_roll = labels[:,2].float()
-
-            pre_yaw, pre_pitch, pre_roll, angles = model(images)
-            yaw = angles[-1][:,0].cpu().data
-            pitch = angles[-1][:,1].cpu().data
-            roll = angles[-1][:,2].cpu().data
-
-            # Mean absolute error
-            yaw_error += torch.sum(torch.abs(yaw - label_yaw) * 3)
-            pitch_error += torch.sum(torch.abs(pitch - label_pitch) * 3)
-            roll_error += torch.sum(torch.abs(roll - label_roll) * 3)
-            if args.save_viz:
-                name = name[0]
+        # Save images with pose cube.
+        # TODO: fix for larger batch size
+        if args.save_viz:
+            name = name[0]
+            if args.dataset == 'BIWI':
+                cv2_img = cv2.imread(os.path.join(args.data_dir, name + '_rgb.png'))
+            else:
                 cv2_img = cv2.imread(os.path.join(args.data_dir, name + '.jpg'))
-                utils.plot_pose_cube(cv2_img, yaw_predicted[0] * 3 - 99, pitch_predicted[0] * 3 - 99, roll_predicted[0] * 3 - 99)
-                cv2.imwrite(os.path.join('output/images', name + '.jpg'), cv2_img)
 
-        print('Test error in degrees of the model on the ' + str(total) +
-        ' test images. Yaw: %.4f, Pitch: %.4f, Roll: %.4f' % (yaw_error / total,
-        pitch_error / total, roll_error / total))
-        txt_output.write('Test error in degrees of model ' + snapshot_name + ' on the ' + str(total) +
-        ' test images. Yaw: %.4f, Pitch: %.4f, Roll: %.4f \n' % (yaw_error / total,
-        pitch_error / total, roll_error / total))
+            if args.batch_size == 1:
+                error_string = 'y %.4f, p %.4f, r %.4f' % (torch.sum(torch.abs(yaw - label_yaw) * 3), torch.sum(torch.abs(pitch - label_pitch) * 3), torch.sum(torch.abs(roll - label_roll) * 3))
+                cv2_img = cv2.putText(cv2_img, error_string, (30, cv2_img.shape[0]- 30), fontFace=1, fontScale=2, color=(0,255,0), thickness=2)
+            utils.plot_pose_cube(cv2_img, yaw[0] * 3 - 99, pitch[0] * 3 - 99, roll[0] * 3 - 99)
+            cv2.imwrite(os.path.join('output/images', name + '.jpg'), cv2_img)
 
-    txt_output.close()
+    print('Test error in degrees of the model on the ' + str(total) +
+    ' test images. Yaw: %.4f, Pitch: %.4f, Roll: %.4f' % (yaw_error / total,
+    pitch_error / total, roll_error / total))
+
+    # Binned accuracy
+    # for idx in xrange(len(yaw_correct)):
+    #     print yaw_correct[idx] / total, pitch_correct[idx] / total, roll_correct[idx] / total

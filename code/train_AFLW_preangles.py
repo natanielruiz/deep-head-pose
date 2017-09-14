@@ -111,7 +111,7 @@ if __name__ == '__main__':
     # ResNet101 with 3 outputs
     # model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 23, 3], 66)
     # ResNet50
-    model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 6, 3], 66)
+    model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 6, 3], 66, 0)
     # ResNet18
     # model = hopenet.Hopenet(torchvision.models.resnet.BasicBlock, [2, 2, 2, 2], 66)
     load_filtered_state_dict(model, model_zoo.load_url(model_urls['resnet50']))
