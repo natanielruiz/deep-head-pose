@@ -133,6 +133,8 @@ if __name__ == '__main__':
         pose_dataset = datasets.BIWI(args.data_dir, args.filename_list, transformations)
     elif args.dataset == 'AFLW':
         pose_dataset = datasets.AFLW(args.data_dir, args.filename_list, transformations)
+    elif args.dataset == 'AFLW_aug':
+        pose_dataset = datasets.AFLW_aug(args.data_dir, args.filename_list, transformations)
     elif args.dataset == 'AFW':
         pose_dataset = datasets.AFW(args.data_dir, args.filename_list, transformations)
     else:
@@ -155,18 +157,23 @@ if __name__ == '__main__':
 
     optimizer = torch.optim.Adam([{'params': get_ignored_params(model), 'lr': 0},
                                   {'params': get_non_ignored_params(model), 'lr': args.lr},
-                                  {'params': get_fc_params(model), 'lr': args.lr * 2}],
+                                  {'params': get_fc_params(model), 'lr': args.lr * 5}],
                                    lr = args.lr)
 
     print 'Ready to train network.'
 
     print 'First phase of training.'
     for epoch in range(num_epochs):
-        for i, (images, labels, name) in enumerate(train_loader):
+        for i, (images, labels, cont_labels, name) in enumerate(train_loader):
             images = Variable(images.cuda(gpu))
             label_yaw = Variable(labels[:,0].cuda(gpu))
             label_pitch = Variable(labels[:,1].cuda(gpu))
             label_roll = Variable(labels[:,2].cuda(gpu))
+
+            label_angles = Variable(cont_labels[:,:3].cuda(gpu))
+            label_yaw_cont = Variable(cont_labels[:,0].cuda(gpu))
+            label_pitch_cont = Variable(cont_labels[:,1].cuda(gpu))
+            label_roll_cont = Variable(cont_labels[:,2].cuda(gpu))
 
             optimizer.zero_grad()
             model.zero_grad()
@@ -183,13 +190,13 @@ if __name__ == '__main__':
             pitch_predicted = softmax(pre_pitch)
             roll_predicted = softmax(pre_roll)
 
-            yaw_predicted = torch.sum(yaw_predicted * idx_tensor, 1)
-            pitch_predicted = torch.sum(pitch_predicted * idx_tensor, 1)
-            roll_predicted = torch.sum(roll_predicted * idx_tensor, 1)
+            yaw_predicted = torch.sum(yaw_predicted * idx_tensor, 1) * 3 - 99
+            pitch_predicted = torch.sum(pitch_predicted * idx_tensor, 1) * 3 - 99
+            roll_predicted = torch.sum(roll_predicted * idx_tensor, 1) * 3 - 99
 
-            loss_reg_yaw = reg_criterion(yaw_predicted, label_yaw.float())
-            loss_reg_pitch = reg_criterion(pitch_predicted, label_pitch.float())
-            loss_reg_roll = reg_criterion(roll_predicted, label_roll.float())
+            loss_reg_yaw = reg_criterion(yaw_predicted, label_yaw_cont)
+            loss_reg_pitch = reg_criterion(pitch_predicted, label_pitch_cont)
+            loss_reg_roll = reg_criterion(roll_predicted, label_roll_cont)
 
             # print yaw_predicted, label_yaw.float(), loss_reg_yaw
             # Total loss
@@ -198,7 +205,6 @@ if __name__ == '__main__':
             loss_roll += alpha * loss_reg_roll
 
             loss_seq = [loss_yaw, loss_pitch, loss_roll]
-            # loss_seq = [loss_reg_yaw, loss_reg_pitch, loss_reg_roll]
             grad_seq = [torch.Tensor(1).cuda(gpu) for _ in range(len(loss_seq))]
             torch.autograd.backward(loss_seq, grad_seq)
             optimizer.step()
@@ -215,65 +221,3 @@ if __name__ == '__main__':
             print 'Taking snapshot...'
             torch.save(model.state_dict(),
             'output/snapshots/' + args.output_string + '_epoch_'+ str(epoch+1) + '.pkl')
-
-    print 'Second phase of training (finetuning layer).'
-    for epoch in range(num_epochs_ft):
-        for i, (images, labels, name) in enumerate(train_loader):
-            images = Variable(images.cuda(gpu))
-            label_yaw = Variable(labels[:,0].cuda(gpu))
-            label_pitch = Variable(labels[:,1].cuda(gpu))
-            label_roll = Variable(labels[:,2].cuda(gpu))
-            label_angles = Variable(labels[:,:3].cuda(gpu))
-
-            optimizer.zero_grad()
-            model.zero_grad()
-
-            pre_yaw, pre_pitch, pre_roll, angles = model(images)
-
-            # Cross entropy loss
-            loss_yaw = criterion(pre_yaw, label_yaw)
-            loss_pitch = criterion(pre_pitch, label_pitch)
-            loss_roll = criterion(pre_roll, label_roll)
-
-            # MSE loss
-            yaw_predicted = softmax(pre_yaw)
-            pitch_predicted = softmax(pre_pitch)
-            roll_predicted = softmax(pre_roll)
-
-            yaw_predicted = torch.sum(yaw_predicted.data * idx_tensor, 1)
-            pitch_predicted = torch.sum(pitch_predicted.data * idx_tensor, 1)
-            roll_predicted = torch.sum(roll_predicted.data * idx_tensor, 1)
-
-            loss_reg_yaw = reg_criterion(yaw_predicted, label_yaw.float())
-            loss_reg_pitch = reg_criterion(pitch_predicted, label_pitch.float())
-            loss_reg_roll = reg_criterion(roll_predicted, label_roll.float())
-
-            # Total loss
-            loss_yaw += alpha * loss_reg_yaw
-            loss_pitch += alpha * loss_reg_pitch
-            loss_roll += alpha * loss_reg_roll
-
-            # Finetuning loss
-            loss_angles = reg_criterion(angles[0], label_angles.float())
-
-            loss_seq = [loss_yaw, loss_pitch, loss_roll, loss_angles]
-            grad_seq = [torch.Tensor(1).cuda(gpu) for _ in range(len(loss_seq))]
-            torch.autograd.backward(loss_seq, grad_seq)
-            optimizer.step()
-
-            if (i+1) % 100 == 0:
-                print ('Epoch [%d/%d], Iter [%d/%d] Losses: pre-yaw %.4f, pre-pitch %.4f, pre-roll %.4f, finetuning %.4f'
-                       %(epoch+1, num_epochs_ft, i+1, len(pose_dataset)//batch_size, loss_yaw.data[0], loss_pitch.data[0], loss_roll.data[0], loss_angles.data[0]))
-                # if epoch == 0:
-                #     torch.save(model.state_dict(),
-                #     'output/snapshots/' + args.output_string + '_iter_'+ str(i+1) + '.pkl')
-
-        # Save models at numbered epochs.
-        if epoch % 1 == 0 and epoch < num_epochs_ft - 1:
-            print 'Taking snapshot...'
-            torch.save(model.state_dict(),
-            'output/snapshots/' + args.output_string + '_epoch_'+ str(num_epochs+epoch+1) + '.pkl')
-
-
-    # Save the final Trained Model
-    torch.save(model.state_dict(), 'output/snapshots/' + args.output_string + '_epoch_' + str(num_epochs+epoch+1) + '.pkl')

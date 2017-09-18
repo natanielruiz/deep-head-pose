@@ -3,7 +3,7 @@ import torch
 import cv2
 from torch.utils.data.dataset import Dataset
 import os
-from PIL import Image
+from PIL import Image, ImageFilter
 
 import utils
 
@@ -77,11 +77,12 @@ class Pose_300W_LP(Dataset):
         shape = np.load(shape_path)
 
         labels = torch.LongTensor(np.concatenate((binned_pose, shape), axis = 0))
+        cont_labels = torch.FloatTensor([yaw, pitch, roll])
 
         if self.transform is not None:
             img = self.transform(img)
 
-        return img, labels, self.X_train[index]
+        return img, labels, cont_labels, elf.X_train[index]
 
     def __len__(self):
         # 122,450
@@ -120,13 +121,6 @@ class AFLW2000(Dataset):
         y_max += 0.6 * k * abs(y_max - y_min)
         img = img.crop((int(x_min), int(y_min), int(x_max), int(y_max)))
 
-        # k = 0.15
-        # x_min -= k * abs(x_max - x_min)
-        # y_min -= 4 * k * abs(y_max - y_min)
-        # x_max += k * abs(x_max - x_min)
-        # y_max += 0.4 * k * abs(y_max - y_min)
-        # img = img.crop((int(x_min), int(y_min), int(x_max), int(y_max)))
-
         # We get the pose in radians
         pose = utils.get_ypr_from_mat(mat_path)
         # And convert to degrees.
@@ -136,14 +130,83 @@ class AFLW2000(Dataset):
         # Bin values
         bins = np.array(range(-99, 102, 3))
         labels = torch.LongTensor(np.digitize([yaw, pitch, roll], bins) - 1)
+        cont_labels = torch.FloatTensor([yaw, pitch, roll])
 
         if self.transform is not None:
             img = self.transform(img)
 
-        return img, labels, self.X_train[index]
+        return img, labels, cont_labels, self.X_train[index]
 
     def __len__(self):
         # 2,000
+        return self.length
+
+class AFLW_aug(Dataset):
+    def __init__(self, data_dir, filename_path, transform, img_ext='.jpg', annot_ext='.txt', image_mode='RGB'):
+        self.data_dir = data_dir
+        self.transform = transform
+        self.img_ext = img_ext
+        self.annot_ext = annot_ext
+
+        filename_list = get_list_from_filenames(filename_path)
+
+        self.X_train = filename_list
+        self.y_train = filename_list
+        self.image_mode = image_mode
+        self.length = len(filename_list)
+
+    def __getitem__(self, index):
+        img = Image.open(os.path.join(self.data_dir, self.X_train[index] + self.img_ext))
+        img = img.convert(self.image_mode)
+        txt_path = os.path.join(self.data_dir, self.y_train[index] + self.annot_ext)
+
+        # We get the pose in radians
+        annot = open(txt_path, 'r')
+        line = annot.readline().split(' ')
+        pose = [float(line[1]), float(line[2]), float(line[3])]
+        # And convert to degrees.
+        yaw = pose[0] * 180 / np.pi
+        pitch = pose[1] * 180 / np.pi
+        roll = pose[2] * 180 / np.pi
+        # Something weird with the roll in AFLW
+        roll *= -1
+
+        # Augment
+        # Flip?
+        rnd = np.random.random_sample()
+        if rnd < 0.5:
+            yaw = -yaw
+            roll = -roll
+            img = img.transpose(Image.FLIP_LEFT_RIGHT)
+
+        # Blur?
+        # rnd = np.random.random_sample()
+        # if rnd < 0.05:
+        #     img = img.filter(ImageFilter.BLUR)
+        #     if rnd < 0.025:
+        #         img = img.filter(ImageFilter.BLUR)
+        #
+        # rnd = np.random.random_sample()
+        # if rnd < 0.05:
+        #     nb = np.random.randint(1,5)
+        #     img = img.rotate(-nb)
+        # elif rnd > 0.95:
+        #     nb = np.random.randint(1,5)
+        #     img = img.rotate(nb)
+
+        # Bin values
+        bins = np.array(range(-99, 102, 3))
+        labels = torch.LongTensor(np.digitize([yaw, pitch, roll], bins) - 1)
+        cont_labels = torch.FloatTensor([yaw, pitch, roll])
+
+        if self.transform is not None:
+            img = self.transform(img)
+
+        return img, labels, cont_labels, self.X_train[index]
+
+    def __len__(self):
+        # train: 18,863
+        # test: 1,966
         return self.length
 
 class AFLW(Dataset):
@@ -178,11 +241,12 @@ class AFLW(Dataset):
         # Bin values
         bins = np.array(range(-99, 102, 3))
         labels = torch.LongTensor(np.digitize([yaw, pitch, roll], bins) - 1)
+        cont_labels = torch.FloatTensor([yaw, pitch, roll])
 
         if self.transform is not None:
             img = self.transform(img)
 
-        return img, labels, self.X_train[index]
+        return img, labels, cont_labels, self.X_train[index]
 
     def __len__(self):
         # train: 18,863
@@ -217,22 +281,27 @@ class AFW(Dataset):
         yaw, pitch, roll = [float(line[1]), float(line[2]), float(line[3])]
 
         # Crop the face
-        k = 0.25
-        x1 -= 0.6 * k * abs(x2 - x1)
-        y1 -= 3 * k * abs(y2 - y1)
-        x2 += 0.6 * k * abs(x2 - x1)
-        y2 += 0.6 * k * abs(y2 - y1)
+        k = 0.40
+        x1 = float(line[4])
+        y1 = float(line[5])
+        x2 = float(line[6])
+        y2 = float(line[7])
+        x1 -= 0.8 * k * abs(x2 - x1)
+        y1 -= 2 * k * abs(y2 - y1)
+        x2 += 0.8 * k * abs(x2 - x1)
+        y2 += 1 * k * abs(y2 - y1)
 
-        img = img.crop((int(x_min), int(y_min), int(x_max), int(y_max)))
+        img = img.crop((int(x1), int(y1), int(x2), int(y2)))
 
         # Bin values
         bins = np.array(range(-99, 102, 3))
         labels = torch.LongTensor(np.digitize([yaw, pitch, roll], bins) - 1)
+        cont_labels = torch.FloatTensor([yaw, pitch, roll])
 
         if self.transform is not None:
             img = self.transform(img)
 
-        return img, labels, self.X_train[index]
+        return img, labels, cont_labels, self.X_train[index]
 
     def __len__(self):
         # Around 200
@@ -311,11 +380,12 @@ class BIWI(Dataset):
         binned_pose = np.digitize([yaw, pitch, roll], bins) - 1
 
         labels = torch.LongTensor(binned_pose)
+        cont_labels = torch.FloatTensor([yaw, pitch, roll])
 
         if self.transform is not None:
             img = self.transform(img)
 
-        return img, labels, self.X_train[index]
+        return img, labels, cont_labels, self.X_train[index]
 
     def __len__(self):
         # 15,667

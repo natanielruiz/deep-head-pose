@@ -114,12 +114,12 @@ if __name__ == '__main__':
 
         l1loss = torch.nn.L1Loss(size_average=False)
 
-        for i, (images, labels, name) in enumerate(test_loader):
+        for i, (images, labels, cont_labels, name) in enumerate(test_loader):
             images = Variable(images).cuda(gpu)
-            total += labels.size(0)
-            label_yaw = labels[:,0].float()
-            label_pitch = labels[:,1].float()
-            label_roll = labels[:,2].float()
+            total += cont_labels.size(0)
+            label_yaw = cont_labels[:,0].float()
+            label_pitch = cont_labels[:,1].float()
+            label_roll = cont_labels[:,2].float()
 
             yaw, pitch, roll, angles = model(images)
 
@@ -138,9 +138,9 @@ if __name__ == '__main__':
             roll_predicted = torch.sum(roll_predicted * idx_tensor, 1).cpu()
 
             # Mean absolute error
-            yaw_error += torch.sum(torch.abs(yaw_predicted - label_yaw) * 3)
-            pitch_error += torch.sum(torch.abs(pitch_predicted - label_pitch) * 3)
-            roll_error += torch.sum(torch.abs(roll_predicted - label_roll) * 3)
+            yaw_error += torch.sum(torch.abs(yaw_predicted * 3 - 99 - label_yaw))
+            pitch_error += torch.sum(torch.abs(pitch_predicted * 3 - 99 - label_pitch))
+            roll_error += torch.sum(torch.abs(roll_predicted * 3 - 99 - label_roll))
 
             if args.save_viz:
                 name = name[0]
