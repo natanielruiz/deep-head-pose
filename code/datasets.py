@@ -281,7 +281,7 @@ class AFW(Dataset):
         yaw, pitch, roll = [float(line[1]), float(line[2]), float(line[3])]
 
         # Crop the face
-        k = 0.40
+        k = 0.32
         x1 = float(line[4])
         y1 = float(line[5])
         x2 = float(line[6])
