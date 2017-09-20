@@ -161,10 +161,10 @@ if __name__ == '__main__':
     print 'Ready to train network.'
     print 'First phase of training.'
     for epoch in range(num_epochs):
-        start = time.time()
+        # start = time.time()
         for i, (images, labels, cont_labels, name) in enumerate(train_loader):
-            print i
-            print 'start: ', time.time() - start
+            # print i
+            # print 'start: ', time.time() - start
             images = Variable(images).cuda(gpu)
             label_yaw = Variable(labels[:,0]).cuda(gpu)
             label_pitch = Variable(labels[:,1]).cuda(gpu)
@@ -207,7 +207,7 @@ if __name__ == '__main__':
             torch.autograd.backward(loss_seq, grad_seq)
             optimizer.step()
 
-            print 'end: ', time.time() - start
+            # print 'end: ', time.time() - start
 
             if (i+1) % 100 == 0:
                 print ('Epoch [%d/%d], Iter [%d/%d] Losses: Yaw %.4f, Pitch %.4f, Roll %.4f'
