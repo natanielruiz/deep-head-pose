@@ -18,6 +18,8 @@ import datasets
 import hopenet
 import torch.utils.model_zoo as model_zoo
 
+import time
+
 model_urls = {
     'resnet18': 'https://download.pytorch.org/models/resnet18-5c106cde.pth',
     'resnet34': 'https://download.pytorch.org/models/resnet34-333f7ec4.pth',
@@ -32,8 +34,6 @@ def parse_args():
     parser.add_argument('--gpu', dest='gpu_id', help='GPU device id to use [0]',
             default=0, type=int)
     parser.add_argument('--num_epochs', dest='num_epochs', help='Maximum number of training epochs.',
-          default=5, type=int)
-    parser.add_argument('--num_epochs_ft', dest='num_epochs_ft', help='Maximum number of finetuning epochs.',
           default=5, type=int)
     parser.add_argument('--batch_size', dest='batch_size', help='Batch size.',
           default=16, type=int)
@@ -103,7 +103,6 @@ if __name__ == '__main__':
 
     cudnn.enabled = True
     num_epochs = args.num_epochs
-    num_epochs_ft = args.num_epochs_ft
     batch_size = args.batch_size
     gpu = args.gpu_id
 
@@ -123,7 +122,6 @@ if __name__ == '__main__':
     transformations = transforms.Compose([transforms.Scale(240),
     transforms.RandomCrop(224), transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
-
 
     if args.dataset == 'Pose_300W_LP':
         pose_dataset = datasets.Pose_300W_LP(args.data_dir, args.filename_list, transformations)
@@ -146,9 +144,9 @@ if __name__ == '__main__':
                                                num_workers=2)
 
     model.cuda(gpu)
-    softmax = nn.Softmax()
-    criterion = nn.CrossEntropyLoss().cuda()
-    reg_criterion = nn.MSELoss().cuda()
+    softmax = nn.Softmax().cuda(gpu)
+    criterion = nn.CrossEntropyLoss().cuda(gpu)
+    reg_criterion = nn.MSELoss().cuda(gpu)
     # Regression loss coefficient
     alpha = args.alpha
 
@@ -161,25 +159,26 @@ if __name__ == '__main__':
                                    lr = args.lr)
 
     print 'Ready to train network.'
-
     print 'First phase of training.'
     for epoch in range(num_epochs):
+        start = time.time()
         for i, (images, labels, cont_labels, name) in enumerate(train_loader):
-            images = Variable(images.cuda(gpu))
-            label_yaw = Variable(labels[:,0].cuda(gpu))
-            label_pitch = Variable(labels[:,1].cuda(gpu))
-            label_roll = Variable(labels[:,2].cuda(gpu))
+            print i
+            print 'start: ', time.time() - start
+            images = Variable(images).cuda(gpu)
+            label_yaw = Variable(labels[:,0]).cuda(gpu)
+            label_pitch = Variable(labels[:,1]).cuda(gpu)
+            label_roll = Variable(labels[:,2]).cuda(gpu)
 
-            label_angles = Variable(cont_labels[:,:3].cuda(gpu))
-            label_yaw_cont = Variable(cont_labels[:,0].cuda(gpu))
-            label_pitch_cont = Variable(cont_labels[:,1].cuda(gpu))
-            label_roll_cont = Variable(cont_labels[:,2].cuda(gpu))
+            label_angles = Variable(cont_labels[:,:3]).cuda(gpu)
+            label_yaw_cont = Variable(cont_labels[:,0]).cuda(gpu)
+            label_pitch_cont = Variable(cont_labels[:,1]).cuda(gpu)
+            label_roll_cont = Variable(cont_labels[:,2]).cuda(gpu)
 
             optimizer.zero_grad()
             model.zero_grad()
 
             pre_yaw, pre_pitch, pre_roll, angles = model(images)
-
             # Cross entropy loss
             loss_yaw = criterion(pre_yaw, label_yaw)
             loss_pitch = criterion(pre_pitch, label_pitch)
@@ -198,7 +197,6 @@ if __name__ == '__main__':
             loss_reg_pitch = reg_criterion(pitch_predicted, label_pitch_cont)
             loss_reg_roll = reg_criterion(roll_predicted, label_roll_cont)
 
-            # print yaw_predicted, label_yaw.float(), loss_reg_yaw
             # Total loss
             loss_yaw += alpha * loss_reg_yaw
             loss_pitch += alpha * loss_reg_pitch
@@ -208,6 +206,8 @@ if __name__ == '__main__':
             grad_seq = [torch.Tensor(1).cuda(gpu) for _ in range(len(loss_seq))]
             torch.autograd.backward(loss_seq, grad_seq)
             optimizer.step()
+
+            print 'end: ', time.time() - start
 
             if (i+1) % 100 == 0:
                 print ('Epoch [%d/%d], Iter [%d/%d] Losses: Yaw %.4f, Pitch %.4f, Roll %.4f'

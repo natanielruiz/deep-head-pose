@@ -38,7 +38,9 @@ class Pose_300W_LP(Dataset):
         x_max = max(pt2d[0,:])
         y_max = max(pt2d[1,:])
 
-        k = 0.35
+        # k = 0.35 was being used beforehand
+        # k = 0.2 to 0.40
+        k = np.random.random_sample() * 0.2 + 0.2
         x_min -= 0.6 * k * abs(x_max - x_min)
         y_min -= 2 * k * abs(y_max - y_min)
         x_max += 0.6 * k * abs(x_max - x_min)
@@ -59,15 +61,10 @@ class Pose_300W_LP(Dataset):
             roll = -roll
             img = img.transpose(Image.FLIP_LEFT_RIGHT)
 
-        # Rotate?
-        # rnd = np.random.random_sample()
-        # if rnd < 0.5:
-        #     if roll >= 0:
-        #         img = img.rotate(30)
-        #         roll -= 30
-        #     else:
-        #         img = img.rotate(-30)
-        #         roll += 30
+        # Blur?
+        rnd = np.random.random_sample()
+        if rnd < 0.05:
+            img = img.filter(ImageFilter.BLUR)
 
         # Bin values
         bins = np.array(range(-99, 102, 3))
@@ -82,7 +79,7 @@ class Pose_300W_LP(Dataset):
         if self.transform is not None:
             img = self.transform(img)
 
-        return img, labels, cont_labels, elf.X_train[index]
+        return img, labels, cont_labels, self.X_train[index]
 
     def __len__(self):
         # 122,450
