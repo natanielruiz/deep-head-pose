@@ -27,13 +27,12 @@ def parse_args():
           default='', type=str)
     parser.add_argument('--filename_list', dest='filename_list', help='Path to text file containing relative paths for every example.',
           default='', type=str)
-    parser.add_argument('--snapshot', dest='snapshot', help='Path of model snapshot.',
+    parser.add_argument('--snapshot', dest='snapshot', help='Name of model snapshot.',
           default='', type=str)
     parser.add_argument('--batch_size', dest='batch_size', help='Batch size.',
           default=1, type=int)
     parser.add_argument('--save_viz', dest='save_viz', help='Save images with pose cube.',
           default=False, type=bool)
-    parser.add_argument('--iter_ref', dest='iter_ref', default=1, type=int)
     parser.add_argument('--dataset', dest='dataset', help='Dataset type.', default='AFLW2000', type=str)
 
     args = parser.parse_args()
@@ -47,12 +46,7 @@ if __name__ == '__main__':
     gpu = args.gpu_id
     snapshot_path = args.snapshot
 
-    # ResNet101 with 3 outputs.
-    # model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 23, 3], 66)
-    # ResNet50
-    model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 6, 3], 66, args.iter_ref)
-    # ResNet18
-    # model = hopenet.Hopenet(torchvision.models.resnet.BasicBlock, [2, 2, 2, 2], 66)
+    model = hopenet.ResNet(torchvision.models.resnet.Bottleneck, [3, 4, 6, 3], 3)
 
     print 'Loading snapshot.'
     # Load snapshot
@@ -90,6 +84,7 @@ if __name__ == '__main__':
     # Test the Model
     model.eval()  # Change model to 'eval' mode (BN uses moving mean/var).
     total = 0
+
     yaw_error = .0
     pitch_error = .0
     roll_error = .0
@@ -103,20 +98,15 @@ if __name__ == '__main__':
         label_pitch = cont_labels[:,1].float()
         label_roll = cont_labels[:,2].float()
 
-        pre_yaw, pre_pitch, pre_roll, angles = model(images)
-        yaw = angles[0][:,0].cpu().data * 3 - 99
-        pitch = angles[0][:,1].cpu().data * 3 - 99
-        roll = angles[0][:,2].cpu().data * 3 - 99
-
-        for idx in xrange(1,args.iter_ref+1):
-            yaw += angles[idx][:,0].cpu().data
-            pitch += angles[idx][:,1].cpu().data
-            roll += angles[idx][:,2].cpu().data
+        angles = model(images)
+        yaw_predicted = angles[:,0].data.cpu()
+        pitch_predicted = angles[:,1].data.cpu()
+        roll_predicted = angles[:,2].data.cpu()
 
         # Mean absolute error
-        yaw_error += torch.sum(torch.abs(yaw - label_yaw))
-        pitch_error += torch.sum(torch.abs(pitch - label_pitch))
-        roll_error += torch.sum(torch.abs(roll - label_roll))
+        yaw_error += torch.sum(torch.abs(yaw_predicted - label_yaw))
+        pitch_error += torch.sum(torch.abs(pitch_predicted - label_pitch))
+        roll_error += torch.sum(torch.abs(roll_predicted - label_roll))
 
         # Save images with pose cube.
         # TODO: fix for larger batch size
@@ -126,17 +116,12 @@ if __name__ == '__main__':
                 cv2_img = cv2.imread(os.path.join(args.data_dir, name + '_rgb.png'))
             else:
                 cv2_img = cv2.imread(os.path.join(args.data_dir, name + '.jpg'))
-
             if args.batch_size == 1:
-                error_string = 'y %.4f, p %.4f, r %.4f' % (torch.sum(torch.abs(yaw - label_yaw) * 3), torch.sum(torch.abs(pitch - label_pitch) * 3), torch.sum(torch.abs(roll - label_roll) * 3))
-                cv2_img = cv2.putText(cv2_img, error_string, (30, cv2_img.shape[0]- 30), fontFace=1, fontScale=2, color=(0,255,0), thickness=2)
-            utils.plot_pose_cube(cv2_img, yaw[0] * 3 - 99, pitch[0] * 3 - 99, roll[0] * 3 - 99)
+                error_string = 'y %.2f, p %.2f, r %.2f' % (torch.sum(torch.abs(yaw_predicted - label_yaw)), torch.sum(torch.abs(pitch_predicted - label_pitch)), torch.sum(torch.abs(roll_predicted - label_roll)))
+                cv2.putText(cv2_img, error_string, (30, cv2_img.shape[0]- 30), fontFace=1, fontScale=1, color=(0,0,255), thickness=1)
+            utils.plot_pose_cube(cv2_img, yaw_predicted[0], pitch_predicted[0], roll_predicted[0])
             cv2.imwrite(os.path.join('output/images', name + '.jpg'), cv2_img)
 
     print('Test error in degrees of the model on the ' + str(total) +
     ' test images. Yaw: %.4f, Pitch: %.4f, Roll: %.4f' % (yaw_error / total,
     pitch_error / total, roll_error / total))
-
-    # Binned accuracy
-    # for idx in xrange(len(yaw_correct)):
-    #     print yaw_correct[idx] / total, pitch_correct[idx] / total, roll_correct[idx] / total

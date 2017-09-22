@@ -48,7 +48,7 @@ if __name__ == '__main__':
     # ResNet101 with 3 outputs.
     # model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 23, 3], 66)
     # ResNet50
-    model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 6, 3], 66)
+    model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 6, 3], 66, 0)
     # ResNet18
     # model = hopenet.Hopenet(torchvision.models.resnet.BasicBlock, [2, 2, 2, 2], 66)
 
@@ -75,11 +75,21 @@ if __name__ == '__main__':
     idx_tensor = torch.FloatTensor(idx_tensor).cuda(gpu)
 
     video = cv2.VideoCapture(video_path)
-    width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))   # float
-    height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT)) # float
+
+    # New cv2
+    # width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))   # float
+    # height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT)) # float
+    #
+    # # Define the codec and create VideoWriter object
+    # fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+    # out = cv2.VideoWriter('output/video/output-%s.avi' % args.output_string, fourcc, 30.0, (width, height))
+
+    # Old cv2
+    width = int(video.get(cv2.cv.CV_CAP_PROP_FRAME_WIDTH))   # float
+    height = int(video.get(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT)) # float
 
     # Define the codec and create VideoWriter object
-    fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+    fourcc = cv2.cv.CV_FOURCC(*'MJPG')
     out = cv2.VideoWriter('output/video/output-%s.avi' % args.output_string, fourcc, 30.0, (width, height))
 
     txt_out = open('output/video/output-%s.txt' % args.output_string, 'w')

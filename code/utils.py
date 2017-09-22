@@ -50,7 +50,6 @@ def plot_pose_cube(img, yaw, pitch, roll, tdx=None, tdy=None, size=150.):
     p = pitch * np.pi / 180
     y = -(yaw * np.pi / 180)
     r = roll * np.pi / 180
-
     if tdx != None and tdy != None:
         face_x = tdx - 0.50 * size
         face_y = tdy - 0.50 * size

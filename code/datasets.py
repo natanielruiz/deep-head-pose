@@ -353,7 +353,7 @@ class BIWI(Dataset):
         R = R[:3,:]
         pose_annot.close()
 
-        roll = np.arctan2(R[1][0], R[0][0]) * 180 / np.pi
+        roll = -np.arctan2(R[1][0], R[0][0]) * 180 / np.pi
         yaw = np.arctan2(-R[2][0], np.sqrt(R[2][1] ** 2 + R[2][2] ** 2)) * 180 / np.pi
         pitch = -np.arctan2(R[2][1], R[2][2]) * 180 / np.pi
 
@@ -364,13 +364,6 @@ class BIWI(Dataset):
         x_max += 0.6 * k * abs(x_max - x_min)
         y_max += 0.6 * k * abs(y_max - y_min)
         img = img.crop((int(x_min), int(y_min), int(x_max), int(y_max)))
-
-        # Flip?
-        # rnd = np.random.random_sample()
-        # if rnd < 0.5:
-        #     yaw = -yaw
-        #     roll = -roll
-        #     img = img.transpose(Image.FLIP_LEFT_RIGHT)
 
         # Bin values
         bins = np.array(range(-99, 102, 3))

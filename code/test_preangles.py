@@ -131,10 +131,13 @@ if __name__ == '__main__':
         # TODO: fix for larger batch size
         if args.save_viz:
             name = name[0]
-            cv2_img = cv2.imread(os.path.join(args.data_dir, name + '.jpg'))
+            if args.dataset == 'BIWI':
+                cv2_img = cv2.imread(os.path.join(args.data_dir, name + '_rgb.png'))
+            else:
+                cv2_img = cv2.imread(os.path.join(args.data_dir, name + '.jpg'))
             if args.batch_size == 1:
                 error_string = 'y %.2f, p %.2f, r %.2f' % (torch.sum(torch.abs(yaw_predicted - label_yaw)), torch.sum(torch.abs(pitch_predicted - label_pitch)), torch.sum(torch.abs(roll_predicted - label_roll)))
-                cv2_img = cv2.putText(cv2_img, error_string, (30, cv2_img.shape[0]- 30), fontFace=1, fontScale=1, color=(0,0,255), thickness=1)
+                cv2.putText(cv2_img, error_string, (30, cv2_img.shape[0]- 30), fontFace=1, fontScale=1, color=(0,0,255), thickness=1)
             utils.plot_pose_cube(cv2_img, yaw_predicted[0], pitch_predicted[0], roll_predicted[0])
             cv2.imwrite(os.path.join('output/images', name + '.jpg'), cv2_img)
 
