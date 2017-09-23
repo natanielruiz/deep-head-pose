@@ -34,6 +34,7 @@ def parse_args():
     parser.add_argument('--save_viz', dest='save_viz', help='Save images with pose cube.',
           default=False, type=bool)
     parser.add_argument('--dataset', dest='dataset', help='Dataset type.', default='AFLW2000', type=str)
+    parser.add_argument('--min_yaw', dest='min_yaw', type=float)
 
     args = parser.parse_args()
 
@@ -46,7 +47,12 @@ if __name__ == '__main__':
     gpu = args.gpu_id
     snapshot_path = args.snapshot
 
-    model = hopenet.ResNet(torchvision.models.resnet.Bottleneck, [3, 4, 6, 3], 3)
+    # ResNet101 with 3 outputs.
+    # model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 23, 3], 66)
+    # ResNet50
+    model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 6, 3], 66, 0)
+    # ResNet18
+    # model = hopenet.Hopenet(torchvision.models.resnet.BasicBlock, [2, 2, 2, 2], 66)
 
     print 'Loading snapshot.'
     # Load snapshot
@@ -88,6 +94,9 @@ if __name__ == '__main__':
     model.eval()  # Change model to 'eval' mode (BN uses moving mean/var).
     total = 0
 
+    idx_tensor = [idx for idx in xrange(66)]
+    idx_tensor = torch.FloatTensor(idx_tensor).cuda(gpu)
+
     yaw_error = .0
     pitch_error = .0
     roll_error = .0
@@ -96,20 +105,32 @@ if __name__ == '__main__':
 
     for i, (images, labels, cont_labels, name) in enumerate(test_loader):
         images = Variable(images).cuda(gpu)
-        total += cont_labels.size(0)
         label_yaw = cont_labels[:,0].float()
         label_pitch = cont_labels[:,1].float()
         label_roll = cont_labels[:,2].float()
 
-        angles = model(images)
-        yaw_predicted = angles[:,0].data.cpu()
-        pitch_predicted = angles[:,1].data.cpu()
-        roll_predicted = angles[:,2].data.cpu()
+        yaw, pitch, roll, angles = model(images)
+
+        # Binned predictions
+        _, yaw_bpred = torch.max(yaw.data, 1)
+        _, pitch_bpred = torch.max(pitch.data, 1)
+        _, roll_bpred = torch.max(roll.data, 1)
+
+        # Continuous predictions
+        yaw_predicted = utils.softmax_temperature(yaw.data, 1)
+        pitch_predicted = utils.softmax_temperature(pitch.data, 1)
+        roll_predicted = utils.softmax_temperature(roll.data, 1)
+
+        yaw_predicted = torch.sum(yaw_predicted * idx_tensor, 1).cpu() * 3 - 99
+        pitch_predicted = torch.sum(pitch_predicted * idx_tensor, 1).cpu() * 3 - 99
+        roll_predicted = torch.sum(roll_predicted * idx_tensor, 1).cpu() * 3 - 99
 
         # Mean absolute error
-        yaw_error += torch.sum(torch.abs(yaw_predicted - label_yaw))
-        pitch_error += torch.sum(torch.abs(pitch_predicted - label_pitch))
-        roll_error += torch.sum(torch.abs(roll_predicted - label_roll))
+        if args.min_yaw <= label_yaw[0]:
+            yaw_error += torch.sum(torch.abs(yaw_predicted - label_yaw))
+            pitch_error += torch.sum(torch.abs(pitch_predicted - label_pitch))
+            roll_error += torch.sum(torch.abs(roll_predicted - label_roll))
+            total += 1
 
         # Save images with pose cube.
         # TODO: fix for larger batch size

@@ -67,6 +67,9 @@ if __name__ == '__main__':
     if args.dataset == 'AFLW2000':
         pose_dataset = datasets.AFLW2000(args.data_dir, args.filename_list,
                                 transformations)
+    elif args.dataset == 'AFLW2000_ds':
+        pose_dataset = datasets.AFLW2000_ds(args.data_dir, args.filename_list,
+                                transformations)
     elif args.dataset == 'BIWI':
         pose_dataset = datasets.BIWI(args.data_dir, args.filename_list, transformations)
     elif args.dataset == 'AFLW':

@@ -18,6 +18,8 @@ import datasets
 import hopenet
 import utils
 
+from PIL import Image
+
 def parse_args():
     """Parse input arguments."""
     parser = argparse.ArgumentParser(description='Head pose estimation using the Hopenet network.')
@@ -46,7 +48,7 @@ if __name__ == '__main__':
     gpu = args.gpu_id
     snapshot_path = args.snapshot
 
-    model = hopenet.ResNet(torchvision.models.resnet.Bottleneck, [3, 4, 6, 3], 3)
+    model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 6, 3], 66, 0)
 
     print 'Loading snapshot.'
     # Load snapshot
@@ -56,8 +58,7 @@ if __name__ == '__main__':
     print 'Loading data.'
 
     transformations = transforms.Compose([transforms.Scale(224),
-    transforms.CenterCrop(224), transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+    transforms.CenterCrop(224), transforms.ToTensor()])
 
     if args.dataset == 'AFLW2000':
         pose_dataset = datasets.AFLW2000(args.data_dir, args.filename_list,
@@ -84,9 +85,16 @@ if __name__ == '__main__':
 
     print 'Ready to test network.'
 
+    # Super-resolution model
+    sr_model = torch.load('data/sr_model/model_epoch_50.pth')["model"]
+    sr_model = sr_model.cuda(gpu)
+
     # Test the Model
     model.eval()  # Change model to 'eval' mode (BN uses moving mean/var).
     total = 0
+
+    idx_tensor = [idx for idx in xrange(66)]
+    idx_tensor = torch.FloatTensor(idx_tensor).cuda(gpu)
 
     yaw_error = .0
     pitch_error = .0
@@ -95,16 +103,60 @@ if __name__ == '__main__':
     l1loss = torch.nn.L1Loss(size_average=False)
 
     for i, (images, labels, cont_labels, name) in enumerate(test_loader):
-        images = Variable(images).cuda(gpu)
+
+        ### START Super-resolution ###
+        # To new color space
+        img = transforms.ToPILImage()(images[0])
+        print img
+        img = img.convert('YCbCr')
+        img_y, img_cb, img_cr = img.split()
+
+        # Super-resolution
+        img_y_var = Variable(transforms.ToTensor()(img_y)).view(1, -1, img_y.size[0], img_y.size[1]).cuda(gpu) / 255.
+        out_sr = sr_model(img_y_var)
+
+        img_h_y = out_sr.data[0].cpu().numpy().astype(np.float32)
+
+        img_h_y = img_h_y * 255
+        img_h_y[img_h_y<0] = 0
+        img_h_y[img_h_y>255.] = 255.
+        img_h_y = img_h_y[0]
+
+        img_new = np.zeros((img_h_y.shape[0], img_h_y.shape[1], 3), np.uint8)
+        img_new[:,:,0] = img_h_y
+        # img_new[:,:,0] = np.asarray(img_y)
+        img_new[:,:,1] = np.asarray(img_cb)
+        img_new[:,:,2] = np.asarray(img_cr)
+        img_new = Image.fromarray(img_new, "YCbCr").convert("RGB")
+
+        # To tensor and normalize
+        img_new.save('output/test_superres/' + name[0] + '.jpg', "JPEG")
+        img = transforms.ToTensor()(img_new)
+        img = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])(img)
+        images = Variable(img.view(1,-1,img.shape[1],img.shape[2])).cuda(gpu)
+
+        ### END Super-resolution ###
+
         total += cont_labels.size(0)
         label_yaw = cont_labels[:,0].float()
         label_pitch = cont_labels[:,1].float()
         label_roll = cont_labels[:,2].float()
 
-        angles = model(images)
-        yaw_predicted = angles[:,0].data.cpu()
-        pitch_predicted = angles[:,1].data.cpu()
-        roll_predicted = angles[:,2].data.cpu()
+        yaw, pitch, roll, angles = model(images)
+
+        # Binned predictions
+        _, yaw_bpred = torch.max(yaw.data, 1)
+        _, pitch_bpred = torch.max(pitch.data, 1)
+        _, roll_bpred = torch.max(roll.data, 1)
+
+        # Continuous predictions
+        yaw_predicted = utils.softmax_temperature(yaw.data, 1)
+        pitch_predicted = utils.softmax_temperature(pitch.data, 1)
+        roll_predicted = utils.softmax_temperature(roll.data, 1)
+
+        yaw_predicted = torch.sum(yaw_predicted * idx_tensor, 1).cpu() * 3 - 99
+        pitch_predicted = torch.sum(pitch_predicted * idx_tensor, 1).cpu() * 3 - 99
+        roll_predicted = torch.sum(roll_predicted * idx_tensor, 1).cpu() * 3 - 99
 
         # Mean absolute error
         yaw_error += torch.sum(torch.abs(yaw_predicted - label_yaw))
