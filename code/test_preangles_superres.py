@@ -107,12 +107,12 @@ if __name__ == '__main__':
         ### START Super-resolution ###
         # To new color space
         img = transforms.ToPILImage()(images[0])
-        print img
+        # print img
         img = img.convert('YCbCr')
         img_y, img_cb, img_cr = img.split()
 
         # Super-resolution
-        img_y_var = Variable(transforms.ToTensor()(img_y)).view(1, -1, img_y.size[0], img_y.size[1]).cuda(gpu) / 255.
+        img_y_var = Variable(transforms.ToTensor()(img_y)).view(1, -1, img_y.size[0], img_y.size[1]).cuda(gpu)
         out_sr = sr_model(img_y_var)
 
         img_h_y = out_sr.data[0].cpu().numpy().astype(np.float32)
@@ -124,7 +124,6 @@ if __name__ == '__main__':
 
         img_new = np.zeros((img_h_y.shape[0], img_h_y.shape[1], 3), np.uint8)
         img_new[:,:,0] = img_h_y
-        # img_new[:,:,0] = np.asarray(img_y)
         img_new[:,:,1] = np.asarray(img_cb)
         img_new[:,:,2] = np.asarray(img_cr)
         img_new = Image.fromarray(img_new, "YCbCr").convert("RGB")

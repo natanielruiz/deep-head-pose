@@ -109,9 +109,9 @@ if __name__ == '__main__':
         _, roll_bpred = torch.max(roll.data, 1)
 
         # Continuous predictions
-        yaw_predicted = utils.softmax_temperature(yaw.data, 0.85)
-        pitch_predicted = utils.softmax_temperature(pitch.data, 0.8)
-        roll_predicted = utils.softmax_temperature(roll.data, 0.8)
+        yaw_predicted = utils.softmax_temperature(yaw.data, 0.1)
+        pitch_predicted = utils.softmax_temperature(pitch.data, 1)
+        roll_predicted = utils.softmax_temperature(roll.data, 1)
 
         yaw_predicted = torch.sum(yaw_predicted * idx_tensor, 1).cpu() * 3 - 99
         pitch_predicted = torch.sum(pitch_predicted * idx_tensor, 1).cpu() * 3 - 99
