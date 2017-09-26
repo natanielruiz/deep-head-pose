@@ -109,9 +109,9 @@ if __name__ == '__main__':
         roll = angles[0][:,2].cpu().data * 3 - 99
 
         for idx in xrange(1,args.iter_ref+1):
-            yaw += angles[idx][:,0].cpu().data
-            pitch += angles[idx][:,1].cpu().data
-            roll += angles[idx][:,2].cpu().data
+            yaw += angles[idx][:,0].cpu().data * 3 - 99
+            pitch += angles[idx][:,1].cpu().data * 3 - 99
+            roll += angles[idx][:,2].cpu().data * 3 - 99
 
         # Mean absolute error
         yaw_error += torch.sum(torch.abs(yaw - label_yaw))

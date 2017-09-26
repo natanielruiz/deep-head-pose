@@ -149,6 +149,7 @@ if __name__ == '__main__':
     softmax = nn.Softmax()
     criterion = nn.CrossEntropyLoss().cuda()
     reg_criterion = nn.MSELoss().cuda()
+    smooth_l1_loss = nn.SmoothL1Loss().cuda()
     # Regression loss coefficient
     alpha = args.alpha
 
@@ -157,7 +158,7 @@ if __name__ == '__main__':
 
     optimizer = torch.optim.Adam([{'params': get_ignored_params(model), 'lr': 0},
                                   {'params': get_non_ignored_params(model), 'lr': args.lr},
-                                  {'params': get_fc_params(model), 'lr': args.lr * 2}],
+                                  {'params': get_fc_params(model), 'lr': args.lr * 5}],
                                    lr = args.lr)
 
     print 'Ready to train network.'
@@ -266,8 +267,12 @@ if __name__ == '__main__':
             loss_seq = [loss_yaw, loss_pitch, loss_roll]
             for idx in xrange(1,len(angles)):
                 label_angles_residuals = label_angles - angles[0] * 3 - 99
+                for idy in xrange(1,idx):
+                    label_angles_residuals += angles[idy] * 3 - 99
                 label_angles_residuals = label_angles_residuals.detach()
-                loss_angles = reg_criterion(angles[idx], label_angles_residuals)
+                # Reconvert to other unit
+                label_angles_residuals = label_angles_residuals / 3.0 + 33
+                loss_angles = smooth_l1_loss(angles[idx], label_angles_residuals)
                 loss_seq.append(loss_angles)
 
             grad_seq = [torch.Tensor(1).cuda(gpu) for _ in range(len(loss_seq))]

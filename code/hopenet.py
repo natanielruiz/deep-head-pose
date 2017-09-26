@@ -4,6 +4,16 @@ from torch.autograd import Variable
 import math
 import torch.nn.functional as F
 
+def ycbcr_to_rgb(input):
+  # input is mini-batch N x 3 x H x W of an YCbCr image
+  output = Variable(input.data.new(*input.size()))
+  output[:, 0, :, :] = input[:, 0, :, :] + (input[:, 2, :, :] - 0.502) * 1.4
+  output[:, 1, :, :] = input[:, 0, :, :] - (input[:, 1, :, :] - 0.502) * 0.343 - (input[:, 2, :, :] - 0.502) * 0.711
+  output[:, 2, :, :] = input[:, 0, :, :] + (input[:, 1, :, :] - 0.502) * 1.765
+  # output[output <= 0] = 0.
+  # output[output > 1] = 1.
+  return output
+
 # CNN Model (2 conv layer)
 class Simple_CNN(nn.Module):
     def __init__(self):
@@ -122,7 +132,7 @@ class Hopenet(nn.Module):
 
         # angles predicts the residual
         for idx in xrange(self.iter_ref):
-            angles.append(self.fc_finetune(torch.cat((preangles, x), 1)))
+            angles.append(self.fc_finetune(torch.cat((angles[idx], x), 1)))
 
         return pre_yaw, pre_pitch, pre_roll, angles
 
@@ -224,3 +234,199 @@ class AlexNet(nn.Module):
         pitch = self.fc_pitch(x)
         roll = self.fc_roll(x)
         return yaw, pitch, roll
+
+class Hopenet_SR(nn.Module):
+    # This is just Hopenet with 3 output layers for yaw, pitch and roll.
+    def __init__(self, block, layers, num_bins, upscale_factor):
+        self.inplanes = 64
+        super(Hopenet, self).__init__()
+        # Super resolution sub-network
+        self.sr_relu = nn.ReLU()
+        self.sr_conv1 = nn.Conv2d(1, 64, (5, 5), (1, 1), (2, 2))
+        self.sr_conv2 = nn.Conv2d(64, 64, (3, 3), (1, 1), (1, 1))
+        self.sr_conv3 = nn.Conv2d(64, 32, (3, 3), (1, 1), (1, 1))
+        self.sr_conv4 = nn.Conv2d(32, upscale_factor ** 2, (3, 3), (1, 1), (1, 1))
+        self.sr_pixel_shuffle = nn.PixelShuffle(upscale_factor)
+
+        # Pose estimation sub-network
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
+                               bias=False)
+        self.bn1 = nn.BatchNorm2d(64)
+        self.relu = nn.ReLU(inplace=True)
+        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+        self.layer1 = self._make_layer(block, 64, layers[0])
+        self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
+        self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
+        self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
+        self.avgpool = nn.AvgPool2d(7)
+        self.fc_yaw = nn.Linear(512 * block.expansion, num_bins)
+        self.fc_pitch = nn.Linear(512 * block.expansion, num_bins)
+        self.fc_roll = nn.Linear(512 * block.expansion, num_bins)
+
+        self.softmax = nn.Softmax()
+        self.idx_tensor = Variable(torch.FloatTensor(range(66))).cuda()
+
+        self.upscale_factor = upscale_factor
+
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                m.weight.data.normal_(0, math.sqrt(2. / n))
+            elif isinstance(m, nn.BatchNorm2d):
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
+
+    def _make_layer(self, block, planes, blocks, stride=1):
+        downsample = None
+        if stride != 1 or self.inplanes != planes * block.expansion:
+            downsample = nn.Sequential(
+                nn.Conv2d(self.inplanes, planes * block.expansion,
+                          kernel_size=1, stride=stride, bias=False),
+                nn.BatchNorm2d(planes * block.expansion),
+            )
+
+        layers = []
+        layers.append(block(self.inplanes, planes, stride, downsample))
+        self.inplanes = planes * block.expansion
+        for i in range(1, blocks):
+            layers.append(block(self.inplanes, planes))
+
+        return nn.Sequential(*layers)
+
+    def forward(self, x):
+        # Super-resolution sub-network
+        y_channel = x[:,0,:,:]
+
+        sr_y = self.sr_relu(self.sr_conv1(y_channel))
+        sr_y = self.sr_relu(self.sr_conv2(sr_y))
+        sr_y = self.sr_relu(self.sr_conv3(sr_y))
+        sr_y = self.sr_pixel_shuffle(self.sr_conv4(sr_y))
+
+        x[:,0,:,:] = sr_y
+        x_rgb = ycbcr_to_rgb(x)
+
+        out_img_cb = cb.resize(out_img_y.size, Image.BICUBIC)
+        out_img_cr = cr.resize(out_img_y.size, Image.BICUBIC)
+        out_img = Image.merge('YCbCr', [out_img_y, out_img_cb, out_img_cr]).convert('RGB')
+
+        # Pose estimation sub-network
+        x = self.conv1(sr_output)
+        x = self.bn1(x)
+        x = self.relu(x)
+        x = self.maxpool(x)
+
+        x = self.layer1(x)
+        x = self.layer2(x)
+        x = self.layer3(x)
+        x = self.layer4(x)
+
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        pre_yaw = self.fc_yaw(x)
+        pre_pitch = self.fc_pitch(x)
+        pre_roll = self.fc_roll(x)
+
+        yaw = self.softmax(pre_yaw)
+        yaw = Variable(torch.sum(yaw.data * self.idx_tensor.data, 1), requires_grad=True)
+        pitch = self.softmax(pre_pitch)
+        pitch = Variable(torch.sum(pitch.data * self.idx_tensor.data, 1), requires_grad=True)
+        roll = self.softmax(pre_roll)
+        roll = Variable(torch.sum(roll.data * self.idx_tensor.data, 1), requires_grad=True)
+        yaw = yaw.view(yaw.size(0), 1)
+        pitch = pitch.view(pitch.size(0), 1)
+        roll = roll.view(roll.size(0), 1)
+        angles = []
+        preangles = torch.cat([yaw, pitch, roll], 1)
+        angles.append(preangles)
+
+        return pre_yaw, pre_pitch, pre_roll, angles, sr_output
+
+class Hopenet_LSTM(nn.Module):
+    # This is just Hopenet with 3 output layers for yaw, pitch and roll.
+    def __init__(self, block, layers, num_bins):
+        self.inplanes = 64
+        super(Hopenet_LSTM, self).__init__()
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
+                               bias=False)
+        self.bn1 = nn.BatchNorm2d(64)
+        self.relu = nn.ReLU(inplace=True)
+        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+        self.layer1 = self._make_layer(block, 64, layers[0])
+        self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
+        self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
+        self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
+        self.avgpool = nn.AvgPool2d(7)
+        self.fc_yaw = nn.Linear(512 * block.expansion, num_bins)
+        self.fc_pitch = nn.Linear(512 * block.expansion, num_bins)
+        self.fc_roll = nn.Linear(512 * block.expansion, num_bins)
+
+        self.softmax = nn.Softmax()
+        self.fc_finetune = nn.Linear(512 * block.expansion + 3, 3)
+
+        self.idx_tensor = Variable(torch.FloatTensor(range(66))).cuda()
+
+        self.lstm = nn.LSTM(512 * block.expansion + 3, 256 * block.expansion, 2, batch_first=True)
+        self.fc_lstm = nn.Linear(256 * block.expansion, 3)
+
+        self.block_expansion = block.expansion
+
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                m.weight.data.normal_(0, math.sqrt(2. / n))
+            elif isinstance(m, nn.BatchNorm2d):
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
+
+    def _make_layer(self, block, planes, blocks, stride=1):
+        downsample = None
+        if stride != 1 or self.inplanes != planes * block.expansion:
+            downsample = nn.Sequential(
+                nn.Conv2d(self.inplanes, planes * block.expansion,
+                          kernel_size=1, stride=stride, bias=False),
+                nn.BatchNorm2d(planes * block.expansion),
+            )
+
+        layers = []
+        layers.append(block(self.inplanes, planes, stride, downsample))
+        self.inplanes = planes * block.expansion
+        for i in range(1, blocks):
+            layers.append(block(self.inplanes, planes))
+
+        return nn.Sequential(*layers)
+
+    def forward(self, x):
+
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu(x)
+        x = self.maxpool(x)
+
+        x = self.layer1(x)
+        x = self.layer2(x)
+        x = self.layer3(x)
+        x = self.layer4(x)
+
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        pre_yaw = self.fc_yaw(x)
+        pre_pitch = self.fc_pitch(x)
+        pre_roll = self.fc_roll(x)
+
+        # Yaw, pitch, roll
+        yaw = self.softmax(pre_yaw)
+        yaw = Variable(torch.sum(yaw.data * self.idx_tensor.data, 1), requires_grad=True) * 3 - 99
+        pitch = self.softmax(pre_pitch)
+        pitch = Variable(torch.sum(pitch.data * self.idx_tensor.data, 1), requires_grad=True) * 3 - 99
+        roll = self.softmax(pre_roll)
+        roll = Variable(torch.sum(roll.data * self.idx_tensor.data, 1), requires_grad=True) * 3 - 99
+        yaw = yaw.view(yaw.size(0), 1)
+        pitch = pitch.view(pitch.size(0), 1)
+        roll = roll.view(roll.size(0), 1)
+        preangles = torch.cat([yaw, pitch, roll], 1)
+
+        residuals, _ = self.lstm(torch.cat((preangles, x), 1), (h0, c0))
+        residuals = self.fc_lstm(residuals[:, -1, :])
+        final_angles = preangles + residuals
+
+        return pre_yaw, pre_pitch, pre_roll, preangles, final_angles
