@@ -128,12 +128,10 @@ class Pose_300W_LP_random_ds(Dataset):
         yaw = pose[1] * 180 / np.pi
         roll = pose[2] * 180 / np.pi
 
-        rnd = np.random.random_sample()
-        if rnd < 0.5:
-            ds = 10
-            original_size = img.size
-            img = img.resize((img.size[0] / ds, img.size[1] / ds), resample=Image.NEAREST)
-            img = img.resize((original_size[0], original_size[1]), resample=Image.NEAREST)
+        ds = np.random.randint(1,11)
+        original_size = img.size
+        img = img.resize((img.size[0] / ds, img.size[1] / ds), resample=Image.NEAREST)
+        img = img.resize((original_size[0], original_size[1]), resample=Image.NEAREST)
 
         # Flip?
         rnd = np.random.random_sample()

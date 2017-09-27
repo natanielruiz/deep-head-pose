@@ -339,7 +339,7 @@ class Hopenet_SR(nn.Module):
         preangles = torch.cat([yaw, pitch, roll], 1)
         angles.append(preangles)
 
-        return pre_yaw, pre_pitch, pre_roll, angles, sr_output
+        return pre_yaw, pre_pitch, pre_roll, angles, sr_y
 
 class Hopenet_new(nn.Module):
     # This is just Hopenet with 3 output layers for yaw, pitch and roll.
