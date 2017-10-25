@@ -128,7 +128,7 @@ class Pose_300W_LP_random_ds(Dataset):
         yaw = pose[1] * 180 / np.pi
         roll = pose[2] * 180 / np.pi
 
-        ds = np.random.randint(1,11)
+        ds = 1 + np.random.randint(0,4) * 5
         original_size = img.size
         img = img.resize((img.size[0] / ds, img.size[1] / ds), resample=Image.NEAREST)
         img = img.resize((original_size[0], original_size[1]), resample=Image.NEAREST)
