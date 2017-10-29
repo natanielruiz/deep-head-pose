@@ -1,18 +1,24 @@
-import numpy as np
-import torch
-import cv2
-from torch.utils.data.dataset import Dataset
 import os
+import numpy as np
+import cv2
+
+import torch
+from torch.utils.data.dataset import Dataset
+from torchvision import transforms
+
 from PIL import Image, ImageFilter
 
 import utils
-from torchvision import transforms
 
-def stack_grayscale_tensor(tensor):
-    tensor = torch.cat([tensor, tensor, tensor], 0)
-    return tensor
+def get_list_from_filenames(file_path):
+    # input:    relative path to .txt file with file names
+    # output:   list of relative path names
+    with open(file_path) as f:
+        lines = f.read().splitlines()
+    return lines
 
 class Pose_300W_LP(Dataset):
+    # Head pose from 300W-LP dataset
     def __init__(self, data_dir, filename_path, transform, img_ext='.jpg', annot_ext='.mat', image_mode='RGB'):
         self.data_dir = data_dir
         self.transform = transform
@@ -32,14 +38,13 @@ class Pose_300W_LP(Dataset):
         mat_path = os.path.join(self.data_dir, self.y_train[index] + self.annot_ext)
         shape_path = os.path.join(self.data_dir, self.y_train[index] + '_shape.npy')
 
-        # Crop the face
+        # Crop the face loosely
         pt2d = utils.get_pt2d_from_mat(mat_path)
         x_min = min(pt2d[0,:])
         y_min = min(pt2d[1,:])
         x_max = max(pt2d[0,:])
         y_max = max(pt2d[1,:])
 
-        # k = 0.35 was being used beforehand
         # k = 0.2 to 0.40
         k = np.random.random_sample() * 0.2 + 0.2
         x_min -= 0.6 * k * abs(x_max - x_min)
@@ -74,6 +79,7 @@ class Pose_300W_LP(Dataset):
         # Get shape
         shape = np.load(shape_path)
 
+        # Get target tensors
         labels = torch.LongTensor(np.concatenate((binned_pose, shape), axis = 0))
         cont_labels = torch.FloatTensor([yaw, pitch, roll])
 
@@ -87,6 +93,7 @@ class Pose_300W_LP(Dataset):
         return self.length
 
 class Pose_300W_LP_random_ds(Dataset):
+    # 300W-LP dataset with random downsampling
     def __init__(self, data_dir, filename_path, transform, img_ext='.jpg', annot_ext='.mat', image_mode='RGB'):
         self.data_dir = data_dir
         self.transform = transform
@@ -106,7 +113,7 @@ class Pose_300W_LP_random_ds(Dataset):
         mat_path = os.path.join(self.data_dir, self.y_train[index] + self.annot_ext)
         shape_path = os.path.join(self.data_dir, self.y_train[index] + '_shape.npy')
 
-        # Crop the face
+        # Crop the face loosely
         pt2d = utils.get_pt2d_from_mat(mat_path)
         x_min = min(pt2d[0,:])
         y_min = min(pt2d[1,:])
@@ -122,9 +129,7 @@ class Pose_300W_LP_random_ds(Dataset):
         img = img.crop((int(x_min), int(y_min), int(x_max), int(y_max)))
 
         # We get the pose in radians
-        pose = utils.get_ypr_from_mat(mat_path)
-        # And convert to degrees.
-        pitch = pose[0] * 180 / np.pi
+        pose = utils.get_ypr_fro    # Head pose from AFLW2000 datasetp.pi
         yaw = pose[1] * 180 / np.pi
         roll = pose[2] * 180 / np.pi
 
@@ -152,6 +157,7 @@ class Pose_300W_LP_random_ds(Dataset):
         # Get shape
         shape = np.load(shape_path)
 
+        # Get target tensors
         labels = torch.LongTensor(np.concatenate((binned_pose, shape), axis = 0))
         cont_labels = torch.FloatTensor([yaw, pitch, roll])
 
@@ -183,7 +189,7 @@ class AFLW2000(Dataset):
         img = img.convert(self.image_mode)
         mat_path = os.path.join(self.data_dir, self.y_train[index] + self.annot_ext)
 
-        # Crop the face
+        # Crop the face loosely
         pt2d = utils.get_pt2d_from_mat(mat_path)
 
         x_min = min(pt2d[0,:])
@@ -219,6 +225,7 @@ class AFLW2000(Dataset):
         return self.length
 
 class AFLW2000_ds(Dataset):
+    # AFLW2000 dataset with fixed downsampling
     def __init__(self, data_dir, filename_path, transform, img_ext='.jpg', annot_ext='.mat', image_mode='RGB'):
         self.data_dir = data_dir
         self.transform = transform
@@ -237,7 +244,7 @@ class AFLW2000_ds(Dataset):
         img = img.convert(self.image_mode)
         mat_path = os.path.join(self.data_dir, self.y_train[index] + self.annot_ext)
 
-        # Crop the face
+        # Crop the face loosely
         pt2d = utils.get_pt2d_from_mat(mat_path)
         x_min = min(pt2d[0,:])
         y_min = min(pt2d[1,:])
@@ -251,7 +258,7 @@ class AFLW2000_ds(Dataset):
         y_max += 0.6 * k * abs(y_max - y_min)
         img = img.crop((int(x_min), int(y_min), int(x_max), int(y_max)))
 
-        ds = 3
+        ds = 3  # downsampling factor
         original_size = img.size
         img = img.resize((img.size[0] / ds, img.size[1] / ds), resample=Image.NEAREST)
         img = img.resize((original_size[0], original_size[1]), resample=Image.NEAREST)
@@ -277,6 +284,7 @@ class AFLW2000_ds(Dataset):
         return self.length
 
 class AFLW_aug(Dataset):
+    # AFLW dataset with flipping
     def __init__(self, data_dir, filename_path, transform, img_ext='.jpg', annot_ext='.txt', image_mode='RGB'):
         self.data_dir = data_dir
         self.transform = transform
@@ -303,7 +311,7 @@ class AFLW_aug(Dataset):
         yaw = pose[0] * 180 / np.pi
         pitch = pose[1] * 180 / np.pi
         roll = pose[2] * 180 / np.pi
-        # Something weird with the roll in AFLW
+        # Fix the roll in AFLW
         roll *= -1
 
         # Augment
@@ -356,7 +364,7 @@ class AFLW(Dataset):
         yaw = pose[0] * 180 / np.pi
         pitch = pose[1] * 180 / np.pi
         roll = pose[2] * 180 / np.pi
-        # Something weird with the roll in AFLW
+        # Fix the roll in AFLW
         roll *= -1
         # Bin values
         bins = np.array(range(-99, 102, 3))
@@ -400,7 +408,7 @@ class AFW(Dataset):
         line = annot.readline().split(' ')
         yaw, pitch, roll = [float(line[1]), float(line[2]), float(line[3])]
 
-        # Crop the face
+        # Crop the face loosely
         k = 0.32
         x1 = float(line[4])
         y1 = float(line[5])
@@ -505,11 +513,3 @@ class BIWI(Dataset):
     def __len__(self):
         # 15,667
         return self.length
-
-
-def get_list_from_filenames(file_path):
-    # input:    relative path to .txt file with file names
-    # output:   list of relative path names
-    with open(file_path) as f:
-        lines = f.read().splitlines()
-    return lines

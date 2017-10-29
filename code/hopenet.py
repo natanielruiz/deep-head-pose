@@ -5,8 +5,9 @@ import math
 import torch.nn.functional as F
 
 class Hopenet(nn.Module):
-    # This is just Hopenet with 3 output layers for yaw, pitch and roll.
-    def __init__(self, block, layers, num_bins, iter_ref):
+    # Hopenet with 3 output layers for yaw, pitch and roll
+    # Predicts Euler angles by binning and regression with the expected value
+    def __init__(self, block, layers, num_bins):
         self.inplanes = 64
         super(Hopenet, self).__init__()
         self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
@@ -23,12 +24,11 @@ class Hopenet(nn.Module):
         self.fc_pitch = nn.Linear(512 * block.expansion, num_bins)
         self.fc_roll = nn.Linear(512 * block.expansion, num_bins)
 
-        self.softmax = nn.Softmax()
         self.fc_finetune = nn.Linear(512 * block.expansion + 3, 3)
 
+        # Used to get the expected value of angle from bins
+        self.softmax = nn.Softmax()
         self.idx_tensor = Variable(torch.FloatTensor(range(66))).cuda()
-
-        self.iter_ref = iter_ref
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -81,18 +81,12 @@ class Hopenet(nn.Module):
         yaw = yaw.view(yaw.size(0), 1)
         pitch = pitch.view(pitch.size(0), 1)
         roll = roll.view(roll.size(0), 1)
-        angles = []
         preangles = torch.cat([yaw, pitch, roll], 1)
-        angles.append(preangles)
 
-        # angles predicts the residual
-        for idx in xrange(self.iter_ref):
-            angles.append(self.fc_finetune(torch.cat((angles[idx], x), 1)))
-
-        return pre_yaw, pre_pitch, pre_roll, angles
+        return pre_yaw, pre_pitch, pre_roll, preangles
 
 class ResNet(nn.Module):
-
+    # ResNet for regression of 3 Euler angles.
     def __init__(self, block, layers, num_classes=1000):
         self.inplanes = 64
         super(ResNet, self).__init__()
@@ -147,11 +141,11 @@ class ResNet(nn.Module):
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
         x = self.fc_angles(x)
-
         return x
 
 class AlexNet(nn.Module):
-
+    # AlexNet laid out as a Hopenet - classify Euler angles in bins and
+    # regress the expected value.
     def __init__(self, num_bins):
         super(AlexNet, self).__init__()
         self.features = nn.Sequential(
