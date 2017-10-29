@@ -118,9 +118,13 @@ if __name__ == '__main__':
         _, roll_bpred = torch.max(roll.data, 1)
 
         # Continuous predictions
-        yaw_predicted = angles[:,0].data.cpu()
-        pitch_predicted = angles[:,1].data.cpu()
-        roll_predicted = angles[:,2].data.cpu()
+        yaw_predicted = utils.softmax_temperature(yaw.data, 1)
+        pitch_predicted = utils.softmax_temperature(pitch.data, 1)
+        roll_predicted = utils.softmax_temperature(roll.data, 1)
+
+        yaw_predicted = torch.sum(yaw_predicted * idx_tensor, 1).cpu() * 3 - 99
+        pitch_predicted = torch.sum(pitch_predicted * idx_tensor, 1).cpu() * 3 - 99
+        roll_predicted = torch.sum(roll_predicted * idx_tensor, 1).cpu() * 3 - 99
 
         # Mean absolute error
         yaw_error += torch.sum(torch.abs(yaw_predicted - label_yaw))
