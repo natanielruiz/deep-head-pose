@@ -96,11 +96,16 @@ if __name__ == '__main__':
     model.eval()  # Change model to 'eval' mode (BN uses moving mean/var).
     total = 0
 
+    idx_tensor = [idx for idx in xrange(66)]
+    idx_tensor = torch.FloatTensor(idx_tensor).cuda(gpu)
+
     yaw_error = .0
     pitch_error = .0
     roll_error = .0
 
     l1loss = torch.nn.L1Loss(size_average=False)
+
+
 
     for i, (images, labels, cont_labels, name) in enumerate(test_loader):
         images = Variable(images).cuda(gpu)
