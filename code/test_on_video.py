@@ -47,7 +47,7 @@ if __name__ == '__main__':
     if not os.path.exists(args.video_path):
         sys.exit('Video does not exist')
 
-    # ResNet50
+    # ResNet50 structure
     model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 6, 3], 66)
 
     print 'Loading snapshot.'
@@ -154,11 +154,16 @@ if __name__ == '__main__':
                 img = img.view(1, img_shape[0], img_shape[1], img_shape[2])
                 img = Variable(img).cuda(gpu)
 
-                yaw, pitch, roll, angles = model(img)
+                yaw, pitch, roll = model(img)
 
-                yaw_predicted = angles[:,0].data[0].cpu()
-                pitch_predicted = angles[:,1].data[0].cpu()
-                roll_predicted = angles[:,2].data[0].cpu()
+                yaw_predicted = F.softmax(yaw)
+                pitch_predicted = F.softmax(pitch)
+                roll_predicted = F.softmax(roll)
+                # Get continuous predictions in degrees.
+                yaw_predicted = torch.sum(yaw_predicted.data[0] * idx_tensor) * 3 - 99
+                pitch_predicted = torch.sum(pitch_predicted.data[0] * idx_tensor) * 3 - 99
+                roll_predicted = torch.sum(roll_predicted.data[0] * idx_tensor) * 3 - 99
+
                 # Print new frame with cube and axis
                 txt_out.write(str(frame_num) + ' %f %f %f\n' % (yaw_predicted, pitch_predicted, roll_predicted))
                 # utils.plot_pose_cube(frame, yaw_predicted, pitch_predicted, roll_predicted, (x_min + x_max) / 2, (y_min + y_max) / 2, size = bbox_width)

@@ -36,13 +36,6 @@ def parse_args():
 
     return args
 
-def load_filtered_state_dict(model, snapshot):
-    # By user apaszke from discuss.pytorch.org
-    model_dict = model.state_dict()
-    snapshot = {k: v for k, v in snapshot.items() if k in model_dict}
-    model_dict.update(snapshot)
-    model.load_state_dict(model_dict)
-
 if __name__ == '__main__':
     args = parse_args()
 
@@ -55,7 +48,7 @@ if __name__ == '__main__':
     print 'Loading snapshot.'
     # Load snapshot
     saved_state_dict = torch.load(snapshot_path)
-    load_filtered_state_dict(model, saved_state_dict)
+    model.load_state_dict(saved_state_dict)
 
     print 'Loading data.'
 

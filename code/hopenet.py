@@ -24,11 +24,8 @@ class Hopenet(nn.Module):
         self.fc_pitch = nn.Linear(512 * block.expansion, num_bins)
         self.fc_roll = nn.Linear(512 * block.expansion, num_bins)
 
+        # Vestigial layer from previous experiments
         self.fc_finetune = nn.Linear(512 * block.expansion + 3, 3)
-
-        # Used to get the expected value of angle from bins
-        self.softmax = nn.Softmax()
-        self.idx_tensor = Variable(torch.FloatTensor(range(66))).cuda()
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -72,18 +69,7 @@ class Hopenet(nn.Module):
         pre_pitch = self.fc_pitch(x)
         pre_roll = self.fc_roll(x)
 
-        yaw = self.softmax(pre_yaw)
-        yaw = Variable(torch.sum(yaw.data * self.idx_tensor.data, 1), requires_grad=True)
-        pitch = self.softmax(pre_pitch)
-        pitch = Variable(torch.sum(pitch.data * self.idx_tensor.data, 1), requires_grad=True)
-        roll = self.softmax(pre_roll)
-        roll = Variable(torch.sum(roll.data * self.idx_tensor.data, 1), requires_grad=True)
-        yaw = yaw.view(yaw.size(0), 1)
-        pitch = pitch.view(pitch.size(0), 1)
-        roll = roll.view(roll.size(0), 1)
-        preangles = torch.cat([yaw, pitch, roll], 1)
-
-        return pre_yaw, pre_pitch, pre_roll, preangles
+        return pre_yaw, pre_pitch, pre_roll
 
 class ResNet(nn.Module):
     # ResNet for regression of 3 Euler angles.

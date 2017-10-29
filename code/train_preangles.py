@@ -124,6 +124,10 @@ if __name__ == '__main__':
     # Regression loss coefficient
     alpha = args.alpha
 
+    softmax = nn.Softmax().cuda(gpu)
+    idx_tensor = [idx for idx in xrange(66)]
+    idx_tensor = Variable(torch.FloatTensor(idx_tensor)).cuda(gpu)
+
     optimizer = torch.optim.Adam([{'params': get_ignored_params(model), 'lr': 0},
                                   {'params': get_non_ignored_params(model), 'lr': args.lr},
                                   {'params': get_fc_params(model), 'lr': args.lr * 5}],
@@ -153,9 +157,13 @@ if __name__ == '__main__':
             loss_roll = criterion(roll, label_roll)
 
             # MSE loss
-            yaw_predicted = angles[:,0]
-            pitch_predicted = angles[:,1]
-            roll_predicted = angles[:,2]
+            yaw_predicted = softmax(yaw)
+            pitch_predicted = softmax(pitch)
+            roll_predicted = softmax(roll)
+
+            yaw_predicted = torch.sum(yaw_predicted * idx_tensor, 1) * 3 - 99
+            pitch_predicted = torch.sum(pitch_predicted * idx_tensor, 1) * 3 - 99
+            roll_predicted = torch.sum(roll_predicted * idx_tensor, 1) * 3 - 99
 
             loss_reg_yaw = reg_criterion(yaw_predicted, label_yaw_cont)
             loss_reg_pitch = reg_criterion(pitch_predicted, label_pitch_cont)
