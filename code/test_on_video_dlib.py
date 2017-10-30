@@ -103,6 +103,8 @@ if __name__ == '__main__':
     frame_num = 1
 
     while frame_num <= args.n_frames:
+        print frame_num
+
         ret,frame = video.read()
         if ret == False:
             break
@@ -119,9 +121,8 @@ if __name__ == '__main__':
             x_max = det.rect.right()
             y_max = det.rect.bottom()
             conf = det.confidence
-            print x_min, y_min, x_max, y_max, conf
 
-            if conf > 0.95:
+            if conf > 1.0:
                 bbox_width = abs(x_max - x_min)
                 bbox_height = abs(y_max - y_min)
                 x_min -= 3 * bbox_width / 4
@@ -155,7 +156,7 @@ if __name__ == '__main__':
                 # utils.plot_pose_cube(frame, yaw_predicted, pitch_predicted, roll_predicted, (x_min + x_max) / 2, (y_min + y_max) / 2, size = bbox_width)
                 utils.draw_axis(frame, yaw_predicted, pitch_predicted, roll_predicted, tdx = (x_min + x_max) / 2, tdy= (y_min + y_max) / 2, size = bbox_height/2)
                 # Plot expanded bounding box
-                # cv2.rectangle(frame, (x_min, y_min), (x_max, y_max), (0,255,0), 1)
+                cv2.rectangle(frame, (x_min, y_min), (x_max, y_max), (0,255,0), 1)
 
             out.write(frame)
             frame_num += 1
