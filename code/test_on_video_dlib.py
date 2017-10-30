@@ -26,7 +26,7 @@ def parse_args():
             default=0, type=int)
     parser.add_argument('--snapshot', dest='snapshot', help='Path of model snapshot.',
           default='', type=str)
-    parser.add_argument('--facedetection_model', dest='facedetection_model', help='Path of DLIB face detection model.',
+    parser.add_argument('--face_model', dest='face_model', help='Path of DLIB face detection model.',
           default='', type=str)
     parser.add_argument('--video', dest='video_path', help='Path of video')
     parser.add_argument('--bboxes', dest='bboxes', help='Bounding box annotations of frames')
@@ -57,7 +57,7 @@ if __name__ == '__main__':
     model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 6, 3], 66)
 
     # Dlib face detection model
-    cnn_face_detector = dlib.cnn_face_detection_model_v1(args.facedetection_model)
+    cnn_face_detector = dlib.cnn_face_detection_model_v1(args.face_model)
 
     print 'Loading snapshot.'
     # Load snapshot
