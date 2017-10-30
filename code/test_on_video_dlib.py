@@ -158,8 +158,8 @@ if __name__ == '__main__':
                 # Plot expanded bounding box
                 cv2.rectangle(frame, (x_min, y_min), (x_max, y_max), (0,255,0), 1)
 
-            out.write(frame)
-            frame_num += 1
+        out.write(frame)
+        frame_num += 1
 
     out.release()
     video.release()
