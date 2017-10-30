@@ -29,7 +29,6 @@ def parse_args():
     parser.add_argument('--face_model', dest='face_model', help='Path of DLIB face detection model.',
           default='', type=str)
     parser.add_argument('--video', dest='video_path', help='Path of video')
-    parser.add_argument('--bboxes', dest='bboxes', help='Bounding box annotations of frames')
     parser.add_argument('--output_string', dest='output_string', help='String appended to output file')
     parser.add_argument('--n_frames', dest='n_frames', help='Number of frames', type=int)
     parser.add_argument('--fps', dest='fps', help='Frames per second of source video', type=float, default=30.)
