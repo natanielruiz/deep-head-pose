@@ -156,7 +156,7 @@ if __name__ == '__main__':
                 # utils.plot_pose_cube(frame, yaw_predicted, pitch_predicted, roll_predicted, (x_min + x_max) / 2, (y_min + y_max) / 2, size = bbox_width)
                 utils.draw_axis(frame, yaw_predicted, pitch_predicted, roll_predicted, tdx = (x_min + x_max) / 2, tdy= (y_min + y_max) / 2, size = bbox_height/2)
                 # Plot expanded bounding box
-                cv2.rectangle(frame, (x_min, y_min), (x_max, y_max), (0,255,0), 1)
+                # cv2.rectangle(frame, (x_min, y_min), (x_max, y_max), (0,255,0), 1)
 
         out.write(frame)
         frame_num += 1
