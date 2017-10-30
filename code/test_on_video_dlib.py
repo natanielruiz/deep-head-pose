@@ -98,6 +98,8 @@ if __name__ == '__main__':
     # fourcc = cv2.cv.CV_FOURCC(*'MJPG')
     # out = cv2.VideoWriter('output/video/output-%s.avi' % args.output_string, fourcc, 30.0, (width, height))
 
+    txt_out = open('output/video/output-%s.txt' % args.output_string, 'w')
+
     frame_num = 1
 
     while frame_num <= args.n_frames:
