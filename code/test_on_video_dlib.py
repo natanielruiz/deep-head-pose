@@ -112,11 +112,11 @@ if __name__ == '__main__':
 
         for idx, det in enumerate(dets):
             # Get x_min, y_min, x_max, y_max, conf
-            x_min = d.rect.left()
-            y_min = d.rect.top()
-            x_max = d.rect.right()
-            y_max = d.rect.bottom()
-            conf = d.confidence
+            x_min = det.rect.left()
+            y_min = det.rect.top()
+            x_max = det.rect.right()
+            y_max = det.rect.bottom()
+            conf = det.confidence
             print x_min, y_min, x_max, y_max, conf
 
             if conf > 0.95:
