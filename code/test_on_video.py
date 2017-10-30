@@ -126,6 +126,7 @@ if __name__ == '__main__':
         ret,frame = video.read()
         if ret == False:
             break
+        cv2_frame = cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)
 
         while True:
             x_min, y_min, x_max, y_max = int(float(line[1])), int(float(line[2])), int(float(line[3])), int(float(line[4]))
@@ -145,7 +146,7 @@ if __name__ == '__main__':
             x_max = min(frame.shape[1], x_max)
             y_max = min(frame.shape[0], y_max)
             # Crop face loosely
-            img = frame[y_min:y_max,x_min:x_max]
+            img = cv2_frame[y_min:y_max,x_min:x_max]
             img = Image.fromarray(img)
 
             # Transform

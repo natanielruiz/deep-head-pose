@@ -16,12 +16,17 @@ from PIL import Image
 
 import datasets, hopenet, utils
 
+from skimage import io
+import dlib
+
 def parse_args():
     """Parse input arguments."""
     parser = argparse.ArgumentParser(description='Head pose estimation using the Hopenet network.')
     parser.add_argument('--gpu', dest='gpu_id', help='GPU device id to use [0]',
             default=0, type=int)
     parser.add_argument('--snapshot', dest='snapshot', help='Path of model snapshot.',
+          default='', type=str)
+    parser.add_argument('--facedetection_model', dest='facedetection_model', help='Path of DLIB face detection model.',
           default='', type=str)
     parser.add_argument('--video', dest='video_path', help='Path of video')
     parser.add_argument('--bboxes', dest='bboxes', help='Bounding box annotations of frames')
@@ -50,6 +55,9 @@ if __name__ == '__main__':
 
     # ResNet50 structure
     model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 6, 3], 66)
+
+    # Dlib face detection model
+    cnn_face_detector = dlib.cnn_face_detection_model_v1(args.facedetection_model)
 
     print 'Loading snapshot.'
     # Load snapshot
@@ -91,61 +99,36 @@ if __name__ == '__main__':
     # fourcc = cv2.cv.CV_FOURCC(*'MJPG')
     # out = cv2.VideoWriter('output/video/output-%s.avi' % args.output_string, fourcc, 30.0, (width, height))
 
-    txt_out = open('output/video/output-%s.txt' % args.output_string, 'w')
-
     frame_num = 1
 
-    with open(args.bboxes, 'r') as f:
-        bbox_line_list = f.read().splitlines()
-
-    idx = 0
-    while idx < len(bbox_line_list):
-        line = bbox_line_list[idx]
-        line = line.strip('\n')
-        line = line.split(' ')
-        det_frame_num = int(line[0])
-
-        print frame_num
-
-        # Stop at a certain frame number
-        if frame_num > args.n_frames:
-            break
-
-        # Save all frames as they are if they don't have bbox annotation.
-        while frame_num < det_frame_num:
-            ret, frame = video.read()
-            if ret == False:
-                out.release()
-                video.release()
-                txt_out.close()
-                sys.exit(0)
-            out.write(frame)
-            frame_num += 1
-
-        # Start processing frame with bounding box
+    while frame_num <= args.n_frames:
         ret,frame = video.read()
         if ret == False:
             break
+
         cv2_frame = cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)
 
-        while True:
-            x_min, y_min, x_max, y_max, conf = int(float(line[1])), int(float(line[2])), int(float(line[3])), int(float(line[4])), float(line[5])
+        # Dlib detect
+        dets = cnn_face_detector(cv2_frame, 1)
 
-            if conf > 0.98:
+        for idx, det in enumerate(dets):
+            # Get x_min, y_min, x_max, y_max, conf
+            x_min = d.rect.left()
+            y_min = d.rect.top()
+            x_max = d.rect.right()
+            y_max = d.rect.bottom()
+            conf = d.confidence
+            print x_min, y_min, x_max, y_max, conf
+
+            if conf > 0.95:
                 bbox_width = abs(x_max - x_min)
                 bbox_height = abs(y_max - y_min)
-                # x_min -= 3 * bbox_width / 4
-                # x_max += 3 * bbox_width / 4
-                # y_min -= 3 * bbox_height / 4
-                # y_max += bbox_height / 4
-                x_min -= 50
-                x_max += 50
-                y_min -= 50
-                y_max += 30
-                x_min = max(x_min, 0)
-                y_min = max(y_min, 0)
-                x_max = min(frame.shape[1], x_max)
-                y_max = min(frame.shape[0], y_max)
+                x_min -= 3 * bbox_width / 4
+                x_max += 3 * bbox_width / 4
+                y_min -= 3 * bbox_height / 4
+                y_max += bbox_height / 4
+                x_min = max(x_min, 0); y_min = max(y_min, 0)
+                x_max = min(frame.shape[1], x_max); y_max = min(frame.shape[0], y_max)
                 # Crop image
                 img = cv2_frame[y_min:y_max,x_min:x_max]
                 img = Image.fromarray(img)
@@ -173,20 +156,8 @@ if __name__ == '__main__':
                 # Plot expanded bounding box
                 # cv2.rectangle(frame, (x_min, y_min), (x_max, y_max), (0,255,0), 1)
 
-            # Peek next frame detection
-            next_frame_num = int(bbox_line_list[idx+1].strip('\n').split(' ')[0])
-            # print 'next_frame_num ', next_frame_num
-            if next_frame_num == det_frame_num:
-                idx += 1
-                line = bbox_line_list[idx].strip('\n').split(' ')
-                det_frame_num = int(line[0])
-            else:
-                break
-
-        idx += 1
-        out.write(frame)
-        frame_num += 1
+            out.write(frame)
+            frame_num += 1
 
     out.release()
     video.release()
-    txt_out.close()
