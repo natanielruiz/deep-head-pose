@@ -37,4 +37,24 @@ Some things that will be added:
 * Better and better models
 * Videos and example images!
 
+If you find Hopenet useful in your research please consider citing:
+
+```
+@article{DBLP:journals/corr/abs-1710-00925,
+  author    = {Nataniel Ruiz and
+               Eunji Chong and
+               James M. Rehg},
+  title     = {Fine-Grained Head Pose Estimation Without Keypoints},
+  journal   = {CoRR},
+  volume    = {abs/1710.00925},
+  year      = {2017},
+  url       = {http://arxiv.org/abs/1710.00925},
+  archivePrefix = {arXiv},
+  eprint    = {1710.00925},
+  timestamp = {Wed, 01 Nov 2017 19:05:43 +0100},
+  biburl    = {http://dblp.org/rec/bib/journals/corr/abs-1710-00925},
+  bibsource = {dblp computer science bibliography, http://dblp.org}
+}
+```
+
 *Nataniel Ruiz*
