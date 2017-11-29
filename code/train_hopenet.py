@@ -27,6 +27,7 @@ def parse_args():
           default=16, type=int)
     parser.add_argument('--lr', dest='lr', help='Base learning rate.',
           default=0.001, type=float)
+    parser.add_argument('--dataset', dest='dataset', help='Dataset type.', default='Pose_300W_LP', type=str)
     parser.add_argument('--data_dir', dest='data_dir', help='Directory path for data.',
           default='', type=str)
     parser.add_argument('--filename_list', dest='filename_list', help='Path to text file containing relative paths for every example.',
@@ -34,7 +35,8 @@ def parse_args():
     parser.add_argument('--output_string', dest='output_string', help='String appended to output snapshots.', default = '', type=str)
     parser.add_argument('--alpha', dest='alpha', help='Regression loss coefficient.',
           default=0.001, type=float)
-    parser.add_argument('--dataset', dest='dataset', help='Dataset type.', default='Pose_300W_LP', type=str)
+    parser.add_argument('--snapshot', dest='snapshot', help='Path of model snapshot.',
+          default='', type=str)
 
     args = parser.parse_args()
     return args
@@ -87,7 +89,12 @@ if __name__ == '__main__':
 
     # ResNet50 structure
     model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 6, 3], 66)
-    load_filtered_state_dict(model, model_zoo.load_url('https://download.pytorch.org/models/resnet50-19c8e357.pth'))
+
+    if args.snapshot == '':
+        load_filtered_state_dict(model, model_zoo.load_url('https://download.pytorch.org/models/resnet50-19c8e357.pth'))
+    else:
+        saved_state_dict = torch.load(args.snapshot)
+        model.load_state_dict(saved_state_dict)
 
     print 'Loading data.'
 
@@ -99,6 +106,8 @@ if __name__ == '__main__':
         pose_dataset = datasets.Pose_300W_LP(args.data_dir, args.filename_list, transformations)
     elif args.dataset == 'Pose_300W_LP_random_ds':
         pose_dataset = datasets.Pose_300W_LP_random_ds(args.data_dir, args.filename_list, transformations)
+    elif args.dataset == 'Synhead':
+        pose_dataset = datasets.Synhead(args.data_dir, args.filename_list, transformations)
     elif args.dataset == 'AFLW2000':
         pose_dataset = datasets.AFLW2000(args.data_dir, args.filename_list, transformations)
     elif args.dataset == 'BIWI':
@@ -149,7 +158,7 @@ if __name__ == '__main__':
             label_roll_cont = Variable(cont_labels[:,2]).cuda(gpu)
 
             # Forward pass
-            yaw, pitch, roll, angles = model(images)
+            yaw, pitch, roll = model(images)
 
             # Cross entropy loss
             loss_yaw = criterion(yaw, label_yaw)
