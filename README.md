@@ -4,7 +4,7 @@
   <img src="https://i.imgur.com/K7jhHOg.png" width="380"><br><br>
 </div>
 
-**Hopenet** is an easy to use and very accurate head pose estimation network. Models have been trained on the 300W-LP dataset and have been tested on real data with good qualitative performance. For accuracy numbers and more details about the method please check the [paper](https://arxiv.org/abs/1710.00925).
+**Hopenet** is an accurate and easy to use head pose estimation network. Models have been trained on the 300W-LP dataset and have been tested on real data with good qualitative performance. For accuracy numbers and more details about the method please check the [paper](https://arxiv.org/abs/1710.00925).
 
 To use please install [PyTorch](http://pytorch.org/) and [OpenCV](https://opencv.org/) (for video) - I believe that's all you need apart from usual libraries such as numpy.
 
