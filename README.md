@@ -7,7 +7,7 @@
 **Hopenet** is an accurate and easy to use head pose estimation network. Models have been trained on the 300W-LP dataset and have been tested on real data with good qualitative performance. For accuracy numbers and more details about the method please check the [paper](https://arxiv.org/abs/1710.00925).
 
 
-<p align="center"><img src="https://i.imgur.com/pcz14p0.gifv" /></p>
+<p align="center"><img src="https://media.giphy.com/media/xT0xePToww0MpufjuE/giphy.gif" /></p>
 
 **new** [GoT trailer example video](https://youtu.be/OZdOrSLBQmI)
 
