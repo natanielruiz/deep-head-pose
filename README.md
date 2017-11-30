@@ -67,3 +67,5 @@ If you find Hopenet useful in your research please consider citing:
 ```
 
 *Nataniel Ruiz*, *Eunji Chong*, *James M. Rehg*
+
+Georgia Institute of Technology
