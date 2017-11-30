@@ -66,4 +66,4 @@ If you find Hopenet useful in your research please consider citing:
 }
 ```
 
-*Nataniel Ruiz*
+*Nataniel Ruiz* *Eunji Chong* *James M. Rehg*
