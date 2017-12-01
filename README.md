@@ -6,6 +6,8 @@
 
 **Hopenet** is an accurate and easy to use head pose estimation network. Models have been trained on the 300W-LP dataset and have been tested on real data with good qualitative performance.
 
+For details about the method and quantitative results please check the [paper](https://arxiv.org/abs/1710.00925).
+
 <div align="center">
 <img src="conan-cruise.gif" /><br><br>
 </div>
@@ -45,8 +47,6 @@ Some things that will be added:
 * Instructions for all scripts
 * Better and better models
 * Videos and example images!
-
-For details about the method and quantitative results please check the [paper](https://arxiv.org/abs/1710.00925). An errata for incorrect table references will be issued on Dec 1st.
 
 If you find Hopenet useful in your research please consider citing:
 
