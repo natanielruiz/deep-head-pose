@@ -19,6 +19,8 @@ For details about the method and quantitative results please check the [paper](h
 
 To use please install [PyTorch](http://pytorch.org/) and [OpenCV](https://opencv.org/) (for video) - I believe that's all you need apart from usual libraries such as numpy. You need a GPU to run Hopenet (for now).
 
+Training scripts still have some issues and will be fixed soon.
+
 To test on a video using dlib face detections (center of head will be jumpy):
 ```bash
 python code/test_on_video_dlib.py --snapshot PATH_OF_SNAPSHOT --face_model PATH_OF_DLIB_MODEL --video PATH_OF_VIDEO --output_string STRING_TO_APPEND_TO_OUTPUT --n_frames N_OF_FRAMES_TO_PROCESS --fps FPS_OF_SOURCE_VIDEO
