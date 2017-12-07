@@ -96,7 +96,6 @@ class Pose_300W_LP(Dataset):
         img = Image.open(os.path.join(self.data_dir, self.X_train[index] + self.img_ext))
         img = img.convert(self.image_mode)
         mat_path = os.path.join(self.data_dir, self.y_train[index] + self.annot_ext)
-        shape_path = os.path.join(self.data_dir, self.y_train[index] + '_shape.npy')
 
         # Crop the face loosely
         pt2d = utils.get_pt2d_from_mat(mat_path)
@@ -136,11 +135,8 @@ class Pose_300W_LP(Dataset):
         bins = np.array(range(-99, 102, 3))
         binned_pose = np.digitize([yaw, pitch, roll], bins) - 1
 
-        # Get shape
-        shape = np.load(shape_path)
-
         # Get target tensors
-        labels = torch.LongTensor(np.concatenate((binned_pose, shape), axis = 0))
+        labels = binned_pose
         cont_labels = torch.FloatTensor([yaw, pitch, roll])
 
         if self.transform is not None:
@@ -171,7 +167,6 @@ class Pose_300W_LP_random_ds(Dataset):
         img = Image.open(os.path.join(self.data_dir, self.X_train[index] + self.img_ext))
         img = img.convert(self.image_mode)
         mat_path = os.path.join(self.data_dir, self.y_train[index] + self.annot_ext)
-        shape_path = os.path.join(self.data_dir, self.y_train[index] + '_shape.npy')
 
         # Crop the face loosely
         pt2d = utils.get_pt2d_from_mat(mat_path)
@@ -214,11 +209,8 @@ class Pose_300W_LP_random_ds(Dataset):
         bins = np.array(range(-99, 102, 3))
         binned_pose = np.digitize([yaw, pitch, roll], bins) - 1
 
-        # Get shape
-        shape = np.load(shape_path)
-
         # Get target tensors
-        labels = torch.LongTensor(np.concatenate((binned_pose, shape), axis = 0))
+        labels = binned_pose
         cont_labels = torch.FloatTensor([yaw, pitch, roll])
 
         if self.transform is not None:
