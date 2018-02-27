@@ -184,7 +184,8 @@ class Pose_300W_LP_random_ds(Dataset):
         img = img.crop((int(x_min), int(y_min), int(x_max), int(y_max)))
 
         # We get the pose in radians
-        pose = utils.get_ypr_fro    # Head pose from AFLW2000 datasetp.pi
+        pose = utils.get_ypr_from_mat(mat_path)
+        pitch = pose[0] * 180 / np.pi
         yaw = pose[1] * 180 / np.pi
         roll = pose[2] * 180 / np.pi
 
