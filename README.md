@@ -39,18 +39,15 @@ Pre-trained models:
 
 For more information on what alpha stands for please read the paper. First two models are for validating paper results, if used on real data we suggest using the last model as it is more robust to image quality and blur and gives good results on video.
 
-Please keep in mind that testing instructions to reproduce the paper results will be added very soon.
+Please open an issue if you have an problem.
 
-This work is still in progress - we are obtaining better results and will also be updating this README with instructions. Please open an issue if you have an problem.
+Some very cool implementation of this work on other platforms by some cool people:
+[Gluon](https://github.com/Cjiangbpcs/gazenet_mxJiang)
+[MXNet](https://github.com/haofanwang/mxnet-Head-Pose)
+[TensorFlow with Keras](https://github.com/Oreobird/tf-keras-deep-head-pose)
 
-Some things that will be added:
-* Test script for images
-* Docker image
-* Instructions for all scripts
-* Better and better models
-* Videos and example images!
 
-If you find Hopenet useful in your research please consider citing:
+If you find Hopenet useful in your research please cite:
 
 ```
 @article{DBLP:journals/corr/abs-1710-00925,
