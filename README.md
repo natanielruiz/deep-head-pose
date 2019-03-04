@@ -41,7 +41,7 @@ For more information on what alpha stands for please read the paper. First two m
 
 Please open an issue if you have an problem.
 
-Some very cool implementation of this work on other platforms by some cool people:
+Some very cool implementations of this work on other platforms by some cool people:
 
 [Gluon](https://github.com/Cjiangbpcs/gazenet_mxJiang)
 
