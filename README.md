@@ -43,7 +43,9 @@ Please open an issue if you have an problem.
 
 Some very cool implementation of this work on other platforms by some cool people:
 [Gluon](https://github.com/Cjiangbpcs/gazenet_mxJiang)
+
 [MXNet](https://github.com/haofanwang/mxnet-Head-Pose)
+
 [TensorFlow with Keras](https://github.com/Oreobird/tf-keras-deep-head-pose)
 
 
