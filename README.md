@@ -6,7 +6,7 @@
 
 **Hopenet** is an accurate and easy to use head pose estimation network. Models have been trained on the 300W-LP dataset and have been tested on real data with good qualitative performance.
 
-For details about the method and quantitative results please check the [paper](https://arxiv.org/abs/1710.00925).
+For details about the method and quantitative results please check the CVPR Workshop [paper](https://arxiv.org/abs/1710.00925).
 
 <div align="center">
 <img src="conan-cruise.gif" /><br><br>
@@ -50,20 +50,12 @@ Some very cool implementation of this work on other platforms by some cool peopl
 If you find Hopenet useful in your research please cite:
 
 ```
-@article{DBLP:journals/corr/abs-1710-00925,
-  author    = {Nataniel Ruiz and
-               Eunji Chong and
-               James M. Rehg},
-  title     = {Fine-Grained Head Pose Estimation Without Keypoints},
-  journal   = {CoRR},
-  volume    = {abs/1710.00925},
-  year      = {2017},
-  url       = {http://arxiv.org/abs/1710.00925},
-  archivePrefix = {arXiv},
-  eprint    = {1710.00925},
-  timestamp = {Wed, 01 Nov 2017 19:05:43 +0100},
-  biburl    = {http://dblp.org/rec/bib/journals/corr/abs-1710-00925},
-  bibsource = {dblp computer science bibliography, http://dblp.org}
+@InProceedings{Ruiz_2018_CVPR_Workshops,
+author = {Ruiz, Nataniel and Chong, Eunji and Rehg, James M.},
+title = {Fine-Grained Head Pose Estimation Without Keypoints},
+booktitle = {The IEEE Conference on Computer Vision and Pattern Recognition (CVPR) Workshops},
+month = {June},
+year = {2018}
 }
 ```
 
