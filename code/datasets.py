@@ -1,15 +1,13 @@
 import os
+
 import numpy as np
-import cv2
 import pandas as pd
-
 import torch
-from torch.utils.data.dataset import Dataset
-from torchvision import transforms
-
 from PIL import Image, ImageFilter
+from torch.utils.data.dataset import Dataset
 
 import utils
+
 
 def get_list_from_filenames(file_path):
     # input:    relative path to .txt file with file names
@@ -18,26 +16,36 @@ def get_list_from_filenames(file_path):
         lines = f.read().splitlines()
     return lines
 
+
 class Synhead(Dataset):
     def __init__(self, data_dir, csv_path, transform, test=False):
-        column_names = ['path', 'bbox_x_min', 'bbox_y_min', 'bbox_x_max', 'bbox_y_max', 'yaw', 'pitch', 'roll']
-        tmp_df = pd.read_csv(csv_path, sep=',', names=column_names, index_col=False, encoding="utf-8-sig")
+        column_names = ['path', 'bbox_x_min', 'bbox_y_min',
+                        'bbox_x_max', 'bbox_y_max', 'yaw', 'pitch', 'roll']
+        tmp_df = pd.read_csv(csv_path, sep=',', names=column_names,
+                             index_col=False, encoding="utf-8-sig")
         self.data_dir = data_dir
         self.transform = transform
         self.X_train = tmp_df['path']
-        self.y_train = tmp_df[['bbox_x_min', 'bbox_y_min', 'bbox_x_max', 'bbox_y_max', 'yaw', 'pitch', 'roll']]
+        self.y_train = tmp_df[['bbox_x_min', 'bbox_y_min',
+                               'bbox_x_max', 'bbox_y_max', 'yaw', 'pitch',
+                               'roll']]
         self.length = len(tmp_df)
         self.test = test
 
     def __getitem__(self, index):
-        path = os.path.join(self.data_dir, self.X_train.iloc[index]).strip('.jpg') + '.png'
+        path = os.path.join(
+            self.data_dir, self.X_train.iloc[index]).strip('.jpg') + '.png'
         img = Image.open(path)
         img = img.convert('RGB')
 
         x_min, y_min, x_max, y_max, yaw, pitch, roll = self.y_train.iloc[index]
-        x_min = float(x_min); x_max = float(x_max)
-        y_min = float(y_min); y_max = float(y_max)
-        yaw = -float(yaw); pitch = float(pitch); roll = float(roll)
+        x_min = float(x_min)
+        x_max = float(x_max)
+        y_min = float(y_min)
+        y_max = float(y_max)
+        yaw = -float(yaw)
+        pitch = float(pitch)
+        roll = float(roll)
 
         # k = 0.2 to 0.40
         k = np.random.random_sample() * 0.2 + 0.2
@@ -77,9 +85,11 @@ class Synhead(Dataset):
     def __len__(self):
         return self.length
 
+
 class Pose_300W_LP(Dataset):
     # Head pose from 300W-LP dataset
-    def __init__(self, data_dir, filename_path, transform, img_ext='.jpg', annot_ext='.mat', image_mode='RGB'):
+    def __init__(self, data_dir, filename_path, transform, img_ext='.jpg',
+                 annot_ext='.mat', image_mode='RGB'):
         self.data_dir = data_dir
         self.transform = transform
         self.img_ext = img_ext
@@ -93,16 +103,18 @@ class Pose_300W_LP(Dataset):
         self.length = len(filename_list)
 
     def __getitem__(self, index):
-        img = Image.open(os.path.join(self.data_dir, self.X_train[index] + self.img_ext))
+        img = Image.open(os.path.join(
+            self.data_dir, self.X_train[index] + self.img_ext))
         img = img.convert(self.image_mode)
-        mat_path = os.path.join(self.data_dir, self.y_train[index] + self.annot_ext)
+        mat_path = os.path.join(
+            self.data_dir, self.y_train[index] + self.annot_ext)
 
         # Crop the face loosely
         pt2d = utils.get_pt2d_from_mat(mat_path)
-        x_min = min(pt2d[0,:])
-        y_min = min(pt2d[1,:])
-        x_max = max(pt2d[0,:])
-        y_max = max(pt2d[1,:])
+        x_min = min(pt2d[0, :])
+        y_min = min(pt2d[1, :])
+        x_max = max(pt2d[0, :])
+        y_max = max(pt2d[1, :])
 
         # k = 0.2 to 0.40
         k = np.random.random_sample() * 0.2 + 0.2
@@ -148,9 +160,11 @@ class Pose_300W_LP(Dataset):
         # 122,450
         return self.length
 
+
 class Pose_300W_LP_random_ds(Dataset):
     # 300W-LP dataset with random downsampling
-    def __init__(self, data_dir, filename_path, transform, img_ext='.jpg', annot_ext='.mat', image_mode='RGB'):
+    def __init__(self, data_dir, filename_path, transform, img_ext='.jpg',
+                 annot_ext='.mat', image_mode='RGB'):
         self.data_dir = data_dir
         self.transform = transform
         self.img_ext = img_ext
@@ -164,16 +178,18 @@ class Pose_300W_LP_random_ds(Dataset):
         self.length = len(filename_list)
 
     def __getitem__(self, index):
-        img = Image.open(os.path.join(self.data_dir, self.X_train[index] + self.img_ext))
+        img = Image.open(os.path.join(
+            self.data_dir, self.X_train[index] + self.img_ext))
         img = img.convert(self.image_mode)
-        mat_path = os.path.join(self.data_dir, self.y_train[index] + self.annot_ext)
+        mat_path = os.path.join(
+            self.data_dir, self.y_train[index] + self.annot_ext)
 
         # Crop the face loosely
         pt2d = utils.get_pt2d_from_mat(mat_path)
-        x_min = min(pt2d[0,:])
-        y_min = min(pt2d[1,:])
-        x_max = max(pt2d[0,:])
-        y_max = max(pt2d[1,:])
+        x_min = min(pt2d[0, :])
+        y_min = min(pt2d[1, :])
+        x_max = max(pt2d[0, :])
+        y_max = max(pt2d[1, :])
 
         # k = 0.2 to 0.40
         k = np.random.random_sample() * 0.2 + 0.2
@@ -189,10 +205,12 @@ class Pose_300W_LP_random_ds(Dataset):
         yaw = pose[1] * 180 / np.pi
         roll = pose[2] * 180 / np.pi
 
-        ds = 1 + np.random.randint(0,4) * 5
+        ds = 1 + np.random.randint(0, 4) * 5
         original_size = img.size
-        img = img.resize((img.size[0] / ds, img.size[1] / ds), resample=Image.NEAREST)
-        img = img.resize((original_size[0], original_size[1]), resample=Image.NEAREST)
+        img = img.resize(
+            (img.size[0] / ds, img.size[1] / ds), resample=Image.NEAREST)
+        img = img.resize(
+            (original_size[0], original_size[1]), resample=Image.NEAREST)
 
         # Flip?
         rnd = np.random.random_sample()
@@ -223,8 +241,10 @@ class Pose_300W_LP_random_ds(Dataset):
         # 122,450
         return self.length
 
+
 class AFLW2000(Dataset):
-    def __init__(self, data_dir, filename_path, transform, img_ext='.jpg', annot_ext='.mat', image_mode='RGB'):
+    def __init__(self, data_dir, filename_path, transform, img_ext='.jpg',
+                 annot_ext='.mat', image_mode='RGB'):
         self.data_dir = data_dir
         self.transform = transform
         self.img_ext = img_ext
@@ -238,17 +258,19 @@ class AFLW2000(Dataset):
         self.length = len(filename_list)
 
     def __getitem__(self, index):
-        img = Image.open(os.path.join(self.data_dir, self.X_train[index] + self.img_ext))
+        img = Image.open(os.path.join(
+            self.data_dir, self.X_train[index] + self.img_ext))
         img = img.convert(self.image_mode)
-        mat_path = os.path.join(self.data_dir, self.y_train[index] + self.annot_ext)
+        mat_path = os.path.join(
+            self.data_dir, self.y_train[index] + self.annot_ext)
 
         # Crop the face loosely
         pt2d = utils.get_pt2d_from_mat(mat_path)
 
-        x_min = min(pt2d[0,:])
-        y_min = min(pt2d[1,:])
-        x_max = max(pt2d[0,:])
-        y_max = max(pt2d[1,:])
+        x_min = min(pt2d[0, :])
+        y_min = min(pt2d[1, :])
+        x_max = max(pt2d[0, :])
+        y_max = max(pt2d[1, :])
 
         k = 0.20
         x_min -= 2 * k * abs(x_max - x_min)
@@ -277,9 +299,11 @@ class AFLW2000(Dataset):
         # 2,000
         return self.length
 
+
 class AFLW2000_ds(Dataset):
     # AFLW2000 dataset with fixed downsampling
-    def __init__(self, data_dir, filename_path, transform, img_ext='.jpg', annot_ext='.mat', image_mode='RGB'):
+    def __init__(self, data_dir, filename_path, transform, img_ext='.jpg',
+                 annot_ext='.mat', image_mode='RGB'):
         self.data_dir = data_dir
         self.transform = transform
         self.img_ext = img_ext
@@ -293,16 +317,18 @@ class AFLW2000_ds(Dataset):
         self.length = len(filename_list)
 
     def __getitem__(self, index):
-        img = Image.open(os.path.join(self.data_dir, self.X_train[index] + self.img_ext))
+        img = Image.open(os.path.join(
+            self.data_dir, self.X_train[index] + self.img_ext))
         img = img.convert(self.image_mode)
-        mat_path = os.path.join(self.data_dir, self.y_train[index] + self.annot_ext)
+        mat_path = os.path.join(
+            self.data_dir, self.y_train[index] + self.annot_ext)
 
         # Crop the face loosely
         pt2d = utils.get_pt2d_from_mat(mat_path)
-        x_min = min(pt2d[0,:])
-        y_min = min(pt2d[1,:])
-        x_max = max(pt2d[0,:])
-        y_max = max(pt2d[1,:])
+        x_min = min(pt2d[0, :])
+        y_min = min(pt2d[1, :])
+        x_max = max(pt2d[0, :])
+        y_max = max(pt2d[1, :])
 
         k = 0.20
         x_min -= 2 * k * abs(x_max - x_min)
@@ -313,8 +339,10 @@ class AFLW2000_ds(Dataset):
 
         ds = 3  # downsampling factor
         original_size = img.size
-        img = img.resize((img.size[0] / ds, img.size[1] / ds), resample=Image.NEAREST)
-        img = img.resize((original_size[0], original_size[1]), resample=Image.NEAREST)
+        img = img.resize(
+            (img.size[0] / ds, img.size[1] / ds), resample=Image.NEAREST)
+        img = img.resize(
+            (original_size[0], original_size[1]), resample=Image.NEAREST)
 
         # We get the pose in radians
         pose = utils.get_ypr_from_mat(mat_path)
@@ -336,9 +364,11 @@ class AFLW2000_ds(Dataset):
         # 2,000
         return self.length
 
+
 class AFLW_aug(Dataset):
     # AFLW dataset with flipping
-    def __init__(self, data_dir, filename_path, transform, img_ext='.jpg', annot_ext='.txt', image_mode='RGB'):
+    def __init__(self, data_dir, filename_path, transform, img_ext='.jpg',
+                 annot_ext='.txt', image_mode='RGB'):
         self.data_dir = data_dir
         self.transform = transform
         self.img_ext = img_ext
@@ -352,9 +382,11 @@ class AFLW_aug(Dataset):
         self.length = len(filename_list)
 
     def __getitem__(self, index):
-        img = Image.open(os.path.join(self.data_dir, self.X_train[index] + self.img_ext))
+        img = Image.open(os.path.join(
+            self.data_dir, self.X_train[index] + self.img_ext))
         img = img.convert(self.image_mode)
-        txt_path = os.path.join(self.data_dir, self.y_train[index] + self.annot_ext)
+        txt_path = os.path.join(
+            self.data_dir, self.y_train[index] + self.annot_ext)
 
         # We get the pose in radians
         annot = open(txt_path, 'r')
@@ -390,8 +422,10 @@ class AFLW_aug(Dataset):
         # test: 1,966
         return self.length
 
+
 class AFLW(Dataset):
-    def __init__(self, data_dir, filename_path, transform, img_ext='.jpg', annot_ext='.txt', image_mode='RGB'):
+    def __init__(self, data_dir, filename_path, transform, img_ext='.jpg',
+                 annot_ext='.txt', image_mode='RGB'):
         self.data_dir = data_dir
         self.transform = transform
         self.img_ext = img_ext
@@ -405,9 +439,11 @@ class AFLW(Dataset):
         self.length = len(filename_list)
 
     def __getitem__(self, index):
-        img = Image.open(os.path.join(self.data_dir, self.X_train[index] + self.img_ext))
+        img = Image.open(os.path.join(
+            self.data_dir, self.X_train[index] + self.img_ext))
         img = img.convert(self.image_mode)
-        txt_path = os.path.join(self.data_dir, self.y_train[index] + self.annot_ext)
+        txt_path = os.path.join(
+            self.data_dir, self.y_train[index] + self.annot_ext)
 
         # We get the pose in radians
         annot = open(txt_path, 'r')
@@ -434,8 +470,10 @@ class AFLW(Dataset):
         # test: 1,966
         return self.length
 
+
 class AFW(Dataset):
-    def __init__(self, data_dir, filename_path, transform, img_ext='.jpg', annot_ext='.txt', image_mode='RGB'):
+    def __init__(self, data_dir, filename_path, transform, img_ext='.jpg',
+                 annot_ext='.txt', image_mode='RGB'):
         self.data_dir = data_dir
         self.transform = transform
         self.img_ext = img_ext
@@ -449,12 +487,14 @@ class AFW(Dataset):
         self.length = len(filename_list)
 
     def __getitem__(self, index):
-        txt_path = os.path.join(self.data_dir, self.y_train[index] + self.annot_ext)
+        txt_path = os.path.join(
+            self.data_dir, self.y_train[index] + self.annot_ext)
         img_name = self.X_train[index].split('_')[0]
 
         img = Image.open(os.path.join(self.data_dir, img_name + self.img_ext))
         img = img.convert(self.image_mode)
-        txt_path = os.path.join(self.data_dir, self.y_train[index] + self.annot_ext)
+        txt_path = os.path.join(
+            self.data_dir, self.y_train[index] + self.annot_ext)
 
         # We get the pose in degrees
         annot = open(txt_path, 'r')
@@ -488,8 +528,10 @@ class AFW(Dataset):
         # Around 200
         return self.length
 
+
 class BIWI(Dataset):
-    def __init__(self, data_dir, filename_path, transform, img_ext='.png', annot_ext='.txt', image_mode='RGB'):
+    def __init__(self, data_dir, filename_path, transform, img_ext='.png',
+                 annot_ext='.txt', image_mode='RGB'):
         self.data_dir = data_dir
         self.transform = transform
         self.img_ext = img_ext
@@ -503,12 +545,16 @@ class BIWI(Dataset):
         self.length = len(filename_list)
 
     def __getitem__(self, index):
-        img = Image.open(os.path.join(self.data_dir, self.X_train[index] + '_rgb' + self.img_ext))
+        img = Image.open(os.path.join(
+            self.data_dir, self.X_train[index] + '_rgb' + self.img_ext))
         img = img.convert(self.image_mode)
-        pose_path = os.path.join(self.data_dir, self.y_train[index] + '_pose' + self.annot_ext)
+        pose_path = os.path.join(
+            self.data_dir, self.y_train[index] + '_pose' + self.annot_ext)
 
         y_train_list = self.y_train[index].split('/')
-        bbox_path = os.path.join(self.data_dir, y_train_list[0] + '/dockerface-' + y_train_list[-1] + '_rgb' + self.annot_ext)
+        bbox_path = os.path.join(
+            self.data_dir, y_train_list[0] + '/dockerface-' +
+            y_train_list[-1] + '_rgb' + self.annot_ext)
 
         # Load bounding box
         bbox = open(bbox_path, 'r')
@@ -516,7 +562,8 @@ class BIWI(Dataset):
         if len(line) < 4:
             x_min, y_min, x_max, y_max = 0, 0, img.size[0], img.size[1]
         else:
-            x_min, y_min, x_max, y_max = [float(line[1]), float(line[2]), float(line[3]), float(line[4])]
+            x_min, y_min, x_max, y_max = [float(line[1]), float(
+                line[2]), float(line[3]), float(line[4])]
         bbox.close()
 
         # Load pose in degrees
@@ -533,14 +580,14 @@ class BIWI(Dataset):
                 R.append(l)
 
         R = np.array(R)
-        T = R[3,:]
-        R = R[:3,:]
+        R = R[:3, :]
         pose_annot.close()
 
         R = np.transpose(R)
 
         roll = -np.arctan2(R[1][0], R[0][0]) * 180 / np.pi
-        yaw = -np.arctan2(-R[2][0], np.sqrt(R[2][1] ** 2 + R[2][2] ** 2)) * 180 / np.pi
+        yaw = -np.arctan2(-R[2][0], np.sqrt(R[2][1] **
+                                            2 + R[2][2] ** 2)) * 180 / np.pi
         pitch = np.arctan2(R[2][1], R[2][2]) * 180 / np.pi
 
         # Loosely crop face
