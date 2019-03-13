@@ -1,4 +1,4 @@
-from __future__ import print_function
+
 
 import argparse
 import os
@@ -171,6 +171,6 @@ if __name__ == '__main__':
                 roll_predicted[0], tdx=200, tdy=200, size=100)
             cv2.imwrite(os.path.join('output/images', name + '.jpg'), cv2_img)
 
-    print('Test error in degrees of the model on the ' + str(total) +
+    print(('Test error in degrees of the model on the ' + str(total) +
           ' test images. Yaw: %.4f, Pitch: %.4f, Roll: %.4f' % (
-              yaw_error / total, pitch_error / total, roll_error / total))
+              yaw_error / total, pitch_error / total, roll_error / total)))

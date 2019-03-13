@@ -1,4 +1,4 @@
-from __future__ import print_function
+
 
 import argparse
 import os
@@ -80,7 +80,7 @@ def get_fc_params(model):
 def load_filtered_state_dict(model, snapshot):
     # By user apaszke from discuss.pytorch.org
     model_dict = model.state_dict()
-    snapshot = {k: v for k, v in snapshot.items() if k in model_dict}
+    snapshot = {k: v for k, v in list(snapshot.items()) if k in model_dict}
     model_dict.update(snapshot)
     model.load_state_dict(model_dict)
 

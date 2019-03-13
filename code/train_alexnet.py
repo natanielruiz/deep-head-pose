@@ -1,4 +1,4 @@
-from __future__ import print_function
+
 
 import argparse
 import os
@@ -88,7 +88,7 @@ def get_fc_params(model):
 def load_filtered_state_dict(model, snapshot):
     # By user apaszke from discuss.pytorch.org
     model_dict = model.state_dict()
-    snapshot = {k: v for k, v in snapshot.items() if k in model_dict}
+    snapshot = {k: v for k, v in list(snapshot.items()) if k in model_dict}
     model_dict.update(snapshot)
     model.load_state_dict(model_dict)
 
@@ -210,10 +210,10 @@ if __name__ == '__main__':
             optimizer.step()
 
             if (i+1) % 100 == 0:
-                print('Epoch [%d/%d], Iter [%d/%d] Losses: Yaw %.4f, Pitch %.4f, Roll %.4f'
+                print(('Epoch [%d/%d], Iter [%d/%d] Losses: Yaw %.4f, Pitch %.4f, Roll %.4f'
                       % (epoch+1, num_epochs, i+1,
                          len(pose_dataset)//batch_size, loss_yaw.data[0],
-                         loss_pitch.data[0], loss_roll.data[0]))
+                         loss_pitch.data[0], loss_roll.data[0])))
 
         # Save models at numbered epochs.
         if epoch % 1 == 0 and epoch < num_epochs:
