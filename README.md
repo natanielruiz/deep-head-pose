@@ -49,6 +49,10 @@ Some very cool implementations of this work on other platforms by some cool peop
 
 [TensorFlow with Keras](https://github.com/Oreobird/tf-keras-deep-head-pose)
 
+A really cool lightweight version of HopeNet:
+
+[Deep Head Pose Light](https://github.com/OverEuro/deep-head-pose-lite)
+
 
 If you find Hopenet useful in your research please cite:
 
