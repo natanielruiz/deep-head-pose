@@ -71,7 +71,7 @@ if __name__ == '__main__':
 
     model.cuda(gpu)
 
-    print 'Ready to test network.'
+    print ('Ready to test network.')
 
     # Test the Model
     model.eval()  # Change model to 'eval' mode (BN uses moving mean/var).
