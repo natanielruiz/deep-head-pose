@@ -125,10 +125,10 @@ if __name__ == '__main__':
             if conf > 1.0:
                 bbox_width = abs(x_max - x_min)
                 bbox_height = abs(y_max - y_min)
-                x_min -= 2 * bbox_width / 4
-                x_max += 2 * bbox_width / 4
-                y_min -= 3 * bbox_height / 4
-                y_max += bbox_height / 4
+                x_min -= 2 * bbox_width // 4
+                x_max += 2 * bbox_width // 4
+                y_min -= 3 * bbox_height // 4
+                y_max += bbox_height // 4
                 x_min = max(x_min, 0); y_min = max(y_min, 0)
                 x_max = min(frame.shape[1], x_max); y_max = min(frame.shape[0], y_max)
                 # Crop image
