@@ -1,5 +1,5 @@
 import sys, os, argparse
-
+import time
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
@@ -18,6 +18,9 @@ import datasets, hopenet, utils
 
 from skimage import io
 import dlib
+
+t= time.time()
+
 
 def parse_args():
     """Parse input arguments."""
@@ -160,6 +163,6 @@ if __name__ == '__main__':
 
         out.write(frame)
         frame_num += 1
-
+    print('time taken=',t-time.time())
     out.release()
     video.release()
