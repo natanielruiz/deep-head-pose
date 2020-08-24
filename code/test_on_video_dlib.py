@@ -19,7 +19,7 @@ import datasets, hopenet, utils
 from skimage import io
 import dlib
 
-t= time.time()
+
 
 
 def parse_args():
@@ -104,7 +104,7 @@ if __name__ == '__main__':
     txt_out = open('output/video/output-%s.txt' % args.output_string, 'w')
 
     frame_num = 1
-
+    t= time.time()
     while frame_num <= args.n_frames:
         print(frame_num)
 
