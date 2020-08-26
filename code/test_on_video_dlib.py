@@ -1,5 +1,4 @@
 import sys, os, argparse
-import time
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
@@ -104,7 +103,7 @@ if __name__ == '__main__':
     txt_out = open('output/video/output-%s.txt' % args.output_string, 'w')
 
     frame_num = 1
-    t= time.time()
+   
     while frame_num <= args.n_frames:
         print(frame_num)
 
@@ -163,6 +162,6 @@ if __name__ == '__main__':
 
         out.write(frame)
         frame_num += 1
-    print('time taken=',t-time.time())
+   
     out.release()
     video.release()
