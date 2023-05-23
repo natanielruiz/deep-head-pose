@@ -180,6 +180,7 @@ if __name__ == '__main__':
 
             loss_seq = [loss_yaw, loss_pitch, loss_roll]
             grad_seq = [torch.ones(1).cuda(gpu) for _ in range(len(loss_seq))]
+            optimizer.zero_grad()
             torch.autograd.backward(loss_seq, grad_seq)
             optimizer.step()
 
